@@ -55,6 +55,7 @@ CSS = r"""
     background:var(--card);border:1px solid var(--line);border-radius:14px;
     padding:18px 16px;box-shadow:0 1px 2px rgba(23,32,43,.04);
   }
+  .lead + .cta-card{margin-top:18px;}
   .btn-open{
     display:block;width:100%;text-align:center;text-decoration:none;
     background:var(--deep);color:#fff;font-size:18px;font-weight:600;
@@ -195,22 +196,13 @@ PAGE = Template(r"""<!DOCTYPE html>
   <h1>$h1</h1>
   <p class="lead">$subtitle</p>
 
-  <div class="wechat-tip">$wechat_tip</div>
-
+$wechat_block
   <div class="cta-card">
     <a class="btn-open" href="$map_uri"$map_target>
-      $cta_title
-      <span class="sub">$cta_sub</span>
-    </a>
-    <div class="cta-note">$cta_note</div>
+      $cta_title$cta_sub_block
+    </a>$cta_note_block
   </div>
-
-  <section>
-    <div class="sec-title"><span class="bar"></span>怎么在手机上打开</div>
-    <ol class="steps">
-$steps
-    </ol>
-  </section>
+$steps_block
 
   <section>
     <div class="sec-title"><span class="bar"></span>行程链接（备用）</div>
@@ -251,16 +243,12 @@ MAP_TEXT = {
         ],
     },
     "google": {
-        "wechat_tip": "Google 地图在国内网络下可能无法打开：出发前请在 Google 地图 App 中下载目的地离线区域，或备用 Organic Maps；微信内请先点右上角「···」→「在浏览器中打开」。",
+        # Google 版只保留按钮，不加打开提示
+        "wechat_tip": "",
         "cta_title": "在 Google 地图中打开行程",
-        "cta_sub": "已装 App 直接跳到 App，未装则打开网页版",
-        "cta_note": "建议安装「Google Maps」App 并提前下载离线地图",
-        "steps": [
-            "在<b>手机浏览器</b>（Safari / Chrome）中打开本页；微信内请先用「在浏览器中打开」。",
-            "点击上方按钮：已装 Google 地图 App 的手机会<b>直接跳到 App</b> 显示全程路线，没装则打开网页版。",
-            "逐站路书里的蓝色「地图」按钮是<b>当天路线</b>，同样会跳到 App，可直接开始导航。",
-            "若没有反应，复制下面的链接，粘贴到手机浏览器地址栏打开。",
-        ],
+        "cta_sub": "",
+        "cta_note": "",
+        "steps": [],
     },
 }
 
@@ -406,11 +394,13 @@ def main():
         eyebrow=esc(d.get("eyebrow", "旅行路书")),
         h1=h1,
         subtitle=esc(d.get("subtitle", "")),
-        wechat_tip=esc(text["wechat_tip"]),
+        wechat_block=('\n  <div class="wechat-tip">%s</div>\n' % esc(text["wechat_tip"])) if text["wechat_tip"] else "",
         cta_title=esc(text["cta_title"]),
-        cta_sub=esc(text["cta_sub"]),
-        cta_note=esc(text["cta_note"]),
-        steps="\n".join("      <li>%s</li>" % li for li in text["steps"]),
+        cta_sub_block=('\n      <span class="sub">%s</span>' % esc(text["cta_sub"])) if text["cta_sub"] else "",
+        cta_note_block=('\n    <div class="cta-note">%s</div>' % esc(text["cta_note"])) if text["cta_note"] else "",
+        steps_block=('\n  <section>\n    <div class="sec-title"><span class="bar"></span>怎么在手机上打开</div>\n'
+                     '    <ol class="steps">\n%s\n    </ol>\n  </section>\n'
+                     % "\n".join("      <li>%s</li>" % li for li in text["steps"])) if text["steps"] else "",
         map_uri=esc(map_uri),
         map_target=' target="_blank" rel="noopener"' if provider == "google" else "",
         route_summary=esc(route),

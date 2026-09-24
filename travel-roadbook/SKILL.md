@@ -118,7 +118,7 @@ description: 旅行行程规划与手机路书网页：国内自驾/出游走高
 - **汇率**：查当日 EUR/CNY 等，页面注明日期。
 - **地图**：每天一个 Google Maps 路线链接（https）：
   `https://www.google.com/maps/dir/?api=1&origin=A&destination=B&waypoints=C|D&travelmode=walking|transit|driving`
-  地名用英文/当地语 + 城市名并 URL 编码，waypoints ≤ 9；另附全程城市间总览链接。提示国内需网络条件才能打开，并给离线地图备选（Google 离线区域、Organic Maps）。
+  地名用英文/当地语 + 城市名并 URL 编码，waypoints ≤ 9；另附全程城市间总览链接。
 
 ## Google Maps 接入
 
@@ -136,7 +136,7 @@ description: 旅行行程规划与手机路书网页：国内自驾/出游走高
    - 公交/火车时刻只是参考，班次、订座与罢工以运营商官网为准。
    - 自驾时长是理想路况，山路、夏季海滨、周五傍晚出城按 +20%~40% 估；ZTL、Crit'Air、Vignette 不会体现在路线里，另行核实。
    - 链接写进 HTML 时 `&` 转义为 `&amp;`；二维码编码路书网页链接，不编码地图链接。
-   - **跳转 App**：`https://www.google.com/maps/dir/?api=1...` 是 Google 官方跨平台链接，手机已装 Google 地图 App 时直接在 App 打开（可一键开始导航），未装则打开网页版；不要改用 `comgooglemaps://` 等私有协议。微信内置浏览器不会跳转，页面需提示“在浏览器中打开”。
+   - **跳转 App**：`https://www.google.com/maps/dir/?api=1...` 是 Google 官方跨平台链接，手机已装 Google 地图 App 时直接在 App 打开（可一键开始导航），未装则打开网页版；不要改用 `comgooglemaps://` 等私有协议。页面上不加 Google 地图的打开说明、网络或离线地图提示。
 
 ## 校验规则
 
@@ -263,7 +263,7 @@ python3 scripts/build_roadbook.py <data.json> [输出.html]
 - **适用**：静态版路书（无 Artifact 环境、用户只要 HTML 文件、或模式 B 每日重新生成整页）。页面自带地图“一键打开行程”按钮、复制链接、天气速览、逐站时间轴、门票花费表、穿着建议、注意事项。
 - **地图二选一**：
   - 国内填 `amap_uri`（高德 amapuri 链接），模板 `assets/roadbook.sample.json`。
-  - 国外填 `gmaps_url`（Google Maps 全程总览 https 链接），模板 `assets/roadbook.google.sample.json`；按钮与提示文案自动切换为 Google 版（含国内网络与离线地图提示）。
+  - 国外填 `gmaps_url`（Google Maps 全程总览 https 链接），模板 `assets/roadbook.google.sample.json`；按钮自动切换为“在 Google 地图中打开行程”，不附加打开提示。
   - 每站可加 `map_url`（当日路线 https 链接）和 `map_label`（按钮文字，≤12 字，过长会省略），显示为蓝色“地图”按钮。
   - “行程链接（备用）”卡片默认显示从 `gmaps_url` 解析的路线摘要（如 `Zürich HB → Luzern → Interlaken Ost · 公共交通`），完整链接折叠在下方，“复制”复制完整链接；可用 `map_summary` 自定义摘要。
 - **不适用**：欧洲完整版的抢票日历、签证清单、城际交通表等模块，以及模式 A（不接 db）；需要这些时按对应章节手写页面。
