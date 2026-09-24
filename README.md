@@ -34,6 +34,7 @@ travel-roadbook/
 │   └── roadbook.google.sample.json # 路书数据模板（国外 · Google Maps）
 └── scripts/
     ├── build_roadbook.py       # JSON → 静态路书 HTML（高德 / Google Maps）
+    ├── deploy.sh               # 发布到 Cloudflare Pages / Vercel
     └── make_qr.py              # 发布链接 → 二维码 PNG
 ```
 
@@ -45,6 +46,7 @@ travel-roadbook/
 
 - 国内分支：高德地图 MCP（地理编码、驾车规划、天气、POI、行程地图）
 - 欧洲 / 国外分支：Google Maps MCP（地点、路线、距离矩阵，可选；未接入时里程标注“参考”）+ Web 搜索 / 网页读取
+- 公开发布（可选）：Node.js + Cloudflare（`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`）或 Vercel（`VERCEL_TOKEN`）令牌
 - 实时数据：支持 Artifact 运行时能力（`db`）与定时任务的 Claude 环境；其他环境退化为静态页面并注明数据查询日期
 
 ## 设计原则

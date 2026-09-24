@@ -22,7 +22,7 @@ description: 旅行行程规划与手机路书网页：国内自驾/出游走高
 2. **核实与质疑**（核心价值，不能省）：按对应分支规则逐条校验。发现问题要明确指出、给替代方案和数字对比，关键取舍让用户拍板后再定稿，不要默默照做。
 3. **采集信息**：按分支工具链。
 4. **生成地图链接**：国内 amapuri，欧洲 Google Maps。
-5. **构建路书网页**：单文件自包含 HTML，手机优先，模块见各分支。支持 Artifact 的环境先加载 artifact-design 技能，**再按第三节加载 artifact-capabilities 技能接入实时数据**，发布为 Artifact；否则交付 HTML 文件（无实时能力，页面注明数据查询日期）；国内分支的静态版可直接用 `scripts/build_roadbook.py` 生成（见第四节）。自检：手机宽度无横向滚动、按钮链接可点、深色模式可读。
+5. **构建路书网页**：单文件自包含 HTML，手机优先，模块见各分支。支持 Artifact 的环境先加载 artifact-design 技能，**再按第三节加载 artifact-capabilities 技能接入实时数据**，发布为 Artifact；用户要不登录也能打开的公开链接或自定义域名时，发布到 Cloudflare Pages / Vercel（见第四节 deploy.sh）；都不行则交付 HTML 文件（无实时能力，页面注明数据查询日期）；国内分支的静态版可直接用 `scripts/build_roadbook.py` 生成（见第四节）。自检：手机宽度无横向滚动、按钮链接可点、深色模式可读。
 6. **接入实时更新**：按第三节写入初始数据、建每日定时任务、做一次功能校验。
 7. **交付**：最终回复 ≤300 字，说明模块、数据查询日期、**自动更新的时间与截止日**；远期价格（欧洲加罢工）出发前再核实；欧洲额外列出需要立即去抢的预约。定时任务若需手动批准才能写数据，提醒用户在该任务设置里打开“自动批准”。用户要扫码分享时，用 `scripts/make_qr.py` 为发布后的 https 链接生成二维码（见第四节）。
 
@@ -193,7 +193,9 @@ description: 旅行行程规划与手机路书网页：国内自驾/出游走高
 ## 选模式
 
 - **模式 A：页面数据库 + 每日任务（默认）**。页面声明 `db` 能力，易变数据存在 db 里，页面订阅后自动刷新。限制：声明 db 的页面**只能在组织内分享、不能公开链接**，看的人需登录同组织 claude.ai 账号。
-- **模式 B：每日重新发布整页**。同行者没有同组织账号、需要公开链接时用。页面不声明 db，每日任务把最新数据写进 HTML 后重新发布到同一链接。
+- **模式 B：每日重新发布整页**。同行者没有同组织账号、需要公开链接时用。页面不声明 db，每日任务把最新数据写进 HTML 后重新发布到同一链接。发布目标二选一：
+  - **Artifact**（默认）：原链接重新发布。
+  - **Cloudflare Pages / Vercel**：用户要完全公开、无需任何账号、或要绑自定义域名时用；每日任务更新路书 JSON → `build_roadbook.py` 重新生成 → `deploy.sh` 以同一项目名重新发布，链接不变。前提：定时任务的运行环境能拿到路书 JSON（放在用户的 Git 仓库里）、Node.js 和部署令牌（配置为环境密钥），否则退回 Artifact。
 
 需求询问阶段已问过同行者账号情况；没问到就默认模式 A，并在交付时说明分享限制与模式 B 的切换方式。
 
@@ -234,7 +236,8 @@ description: 旅行行程规划与手机路书网页：国内自驾/出游走高
      - 只把进入预报窗口的日期从 `climate` 换成 `forecast`，其余保留原值不动。
      - 查不到的数据保留旧值，不编造；`alerts` 只收已公告、有来源链接的事项，过期的移除。
      - 模式 A：用 ArtifactData batch 更新 `live/weather`、`live/fx`、`live/alerts`、`live/meta`（写 `lastRun`、`lastStatus`）。
-     - 模式 B：读取 Artifact 当前页面，只替换内嵌数据块与更新时间后原链接重新发布，不改其他内容。
+     - 模式 B（Artifact）：读取 Artifact 当前页面，只替换内嵌数据块与更新时间后原链接重新发布，不改其他内容。
+     - 模式 B（Cloudflare / Vercel）：写明仓库、JSON 路径、平台与项目名；只改 JSON 中的天气/提醒等易变字段 → `build_roadbook.py` → `deploy.sh <平台> <html> <项目名>` → 提交 JSON 改动；发布后 curl 正式链接确认 200。
   5. **推送条件**：新增 `severe` 预警、行程日天气出现暴雨/暴雪/高温红色等，或连续 2 天更新失败时，用 SendUserMessage 简短告诉用户；否则静默。
   6. **自行停用**：当前日期晚于 `tripEnd` 时，用 list_triggers 找到本任务并 update_trigger 设 `enabled:false`，然后结束。
 - **地图工具必须是连接器**：高德 / Google Maps 必须是用户在 claude.ai 添加的连接器，定时任务的新会话才能用；否则任务改用 WebSearch 查天气并在 `source` 注明。
@@ -265,6 +268,23 @@ python3 scripts/build_roadbook.py <data.json> [输出.html]
 - **用法**：复制对应模板为本次数据文件，把字段全部替换成本次采集的真实数据：`amap_uri` 填 `maps_schema_personal_map` 返回的原始链接、`gmaps_url`/`map_url` 按“Google Maps 接入”拼接，里程、天气、票价按“内容口径”填写，示例中的 `REPLACE_WITH_REAL_TOKEN`、`YYYY-MM-DD`、`YY`、“替换为…”“按…实查”等占位内容不得留在成品里。不传输出路径时，输出到 JSON 同目录同名 `.html`。
 - 所有文本字段会做 HTML 转义；`footer` 里只有 `<br>` 会保留为换行。
 - 生成后按第 5 步自检，再发布或交付文件。
+
+## deploy.sh：发布到 Cloudflare Pages / Vercel
+
+```bash
+bash scripts/deploy.sh cloudflare <路书.html> <项目名>   # → https://<项目名>.pages.dev
+bash scripts/deploy.sh vercel     <路书.html> <项目名>   # → https://<项目名>.vercel.app
+```
+
+- **何时用**：用户要不登录就能打开的公开链接、同行者没有 claude.ai 账号、或要绑自定义域名。能用 Artifact 且用户没提这些需求时，仍优先 Artifact。
+- **选平台**：用户已有哪个账号就用哪个；都没有时推荐 Cloudflare Pages（免费额度够用）。
+- **令牌**：只从环境变量读取——Cloudflare 需 `CLOUDFLARE_API_TOKEN`（权限 Cloudflare Pages: Edit）与 `CLOUDFLARE_ACCOUNT_ID`；Vercel 需 `VERCEL_TOKEN`，团队账号加 `VERCEL_SCOPE`。缺少时告诉用户去哪里创建，并配置为运行环境的密钥；**不要让用户把令牌贴进对话，不要写进文件或提交到仓库**。
+- **项目名**：小写字母、数字、连字符，如 `trip-2026-chuanxi`；同名重复发布即覆盖更新，链接不变。行程改版时用原项目名。
+- **只发布 `index.html`**：脚本在临时目录里只放路书页面，JSON 等源文件不会公开。
+- **隐私提醒**：公开链接任何人拿到都能打开，发布前提醒用户页面里有日期、住宿、人员等信息，敏感内容可删减或改用 Artifact。
+- **国内访问**：`*.vercel.app`、`*.pages.dev` 在中国大陆访问可能不稳定；同行者在国内时建议绑定自定义域名，或改用 Artifact。
+- **验证**：发布后 `curl -sI <正式链接>` 确认返回 200，再交付链接；要扫码时对正式链接运行 `make_qr.py`。
+- 先用 `DRY_RUN=1 bash scripts/deploy.sh ...` 可只打印命令不联网，用来检查参数。
 
 ## make_qr.py：发布链接 → 二维码 PNG
 
