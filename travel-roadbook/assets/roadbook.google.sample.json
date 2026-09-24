@@ -6,7 +6,34 @@
     "5天火车路书"
   ],
   "subtitle": "示例数据 · 3 城 · 火车为主 · 所有车次、票价、天气须按实际查询替换",
+  "tags": [
+    "主申请国：瑞士（停留最长）",
+    "节庆：替换为当年确切日期与城市",
+    "日落约 HH:MM"
+  ],
   "gmaps_url": "https://www.google.com/maps/dir/?api=1&origin=Z%C3%BCrich+HB%2C+Z%C3%BCrich&destination=Interlaken+Ost%2C+Interlaken&travelmode=driving&waypoints=Luzern%2C+Luzern",
+  "flights": [
+    {
+      "date": "D1",
+      "no": "替换为航班号",
+      "from": "出发机场 航站楼",
+      "to": "ZRH",
+      "dep": "HH:MM",
+      "arr": "HH:MM",
+      "note": "按截图实查；转机 < 2 小时偏紧，凌晨航班前一晚出门"
+    }
+  ],
+  "flights_note": "退房 → 到机场（国际约 3 小时）→ 退税 → 值机，按返程航班倒推。",
+  "bookings": [
+    {
+      "item": "少女峰铁路（示例）",
+      "on_sale": "YYYY-MM-DDTHH:MM:00+02:00",
+      "visit": "D4",
+      "rule": "按官网放票规则实查，参观日往前推算出具体日期",
+      "url": "https://替换为官方预约页"
+    }
+  ],
+  "bookings_note": "开售规则来自各官网（YYYY-MM-DD 查询），以官网当期规则为准。",
   "updated_at": "YYYY-MM-DDTHH:MM:00+02:00",
   "alerts": [
     {
@@ -155,6 +182,18 @@
     }
   ],
   "food_note": "推荐店来自 Google Maps 地点检索（YYYY-MM-DD 查询），评分与价位以 Google 当日数据为准；瑞士餐厅多有午晚餐间休，周日部分歇业。",
+  "stays": [
+    {
+      "city": "苏黎世",
+      "dates": "D1–D2 · 2 晚",
+      "name": "替换为已订或推荐的住宿",
+      "status": "booked",
+      "price": "起价按预订平台实查（注明床位/整间与查询日期）",
+      "note": "离 HB 步行距离 · 入住截止 · 能否寄存 · 城市税 · 免费取消期限",
+      "map_url": "https://www.google.com/maps/search/?api=1&query=Z%C3%BCrich+HB"
+    }
+  ],
+  "stays_note": "住宿信息来自预订平台（YYYY-MM-DD 查询），以订单为准。",
   "tickets": [
     {
       "name": "城际火车",
@@ -172,6 +211,16 @@
     {
       "group": "高山（低温、风大、日晒强）",
       "items": "抓绒/羽绒 + 防风外套，墨镜、防晒霜。"
+    }
+  ],
+  "gear": [
+    {
+      "group": "相机与镜头（用户要求时）",
+      "items": "按拍摄计划列焦段；山上低温备用电池；存储卡与云端备份。"
+    },
+    {
+      "group": "规定",
+      "items": "充电宝随身、需 3C 认证（从中国出发）；西斯廷礼拜堂等禁拍；无人机通常建议不带。"
     }
   ],
   "tips": [
