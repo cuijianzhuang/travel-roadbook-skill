@@ -14,6 +14,7 @@ build_roadbook.py — 旅行路书网页构建器
     amap_uri   国内，高德 amapuri:// 行程链接（maps_schema_personal_map 返回）
     gmaps_url  国外，Google Maps https 路线链接（全程总览）
 每站可选 map_url（当日 Google Maps / 高德 https 链接），渲染为“地图”按钮。
+food 为“当地美食推荐”模块：按城市列代表菜，每道菜可附推荐店（备注 + 导航链接）。
 
 JSON 字段见 assets/roadbook.sample.json（国内）与 assets/roadbook.google.sample.json（国外）。
 所有动态文本均做 HTML 转义。
@@ -134,6 +135,15 @@ CSS = r"""
   table.tk th{background:#eef3f9;font-weight:600;font-size:12.5px;}
   table.tk tr:last-child td{border-bottom:none;}
   table.tk td.price{white-space:nowrap;color:var(--ink);font-weight:600;}
+  .dish{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
+  .dish .n{font-size:15px;font-weight:600;display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+  .dish .chip{font-size:11px;font-weight:600;color:var(--orange);background:#fdf3ea;border-radius:4px;padding:1px 6px;}
+  .dish .desc{font-size:13px;color:#46505c;margin-top:4px;line-height:1.5;}
+  .shop{display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);}
+  .shop .info{flex:1;min-width:0;}
+  .shop .sn{font-size:13.5px;font-weight:600;}
+  .shop .sm{font-size:12px;color:var(--sub);margin-top:1px;line-height:1.45;}
+  .shop .map-btn{flex:none;}
   .cloth{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
   .cloth .g{font-size:14px;font-weight:600;margin-bottom:3px;}
   .cloth .g .ic{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--deep);margin-right:7px;}
@@ -201,6 +211,7 @@ $wechat_block
   </div>
 $steps_block$backup_block$weather_block
 $stages_block
+$food_block
 $tickets_block
 $clothing_block
 $tips_block
@@ -296,6 +307,32 @@ def render_stages(stages):
     return '\n  <section>\n    <div class="sec-title"><span class="bar"></span>逐站路书</div>\n%s\n  </section>' % "\n".join(blocks)
 
 
+def render_food(food, note):
+    if not food:
+        return ""
+    blocks = []
+    for group in food:
+        dishes = []
+        for it in group.get("items", []):
+            chips = "".join('<span class="chip">%s</span>' % esc(t) for t in it.get("tags", []))
+            desc = '<div class="desc">%s</div>' % esc(it["desc"]) if it.get("desc") else ""
+            shops = []
+            for sh in it.get("shops", []):
+                meta = '<div class="sm">%s</div>' % esc(sh["note"]) if sh.get("note") else ""
+                url = sh.get("map_url", "")
+                btn = ('<a class="map-btn" href="%s" target="_blank" rel="noopener">%s<span>导航</span></a>'
+                       % (esc(url), PIN_SVG)) if url.startswith("https://") else ""
+                shops.append('<div class="shop"><div class="info"><div class="sn">%s</div>%s</div>%s</div>'
+                             % (esc(sh["name"]), meta, btn))
+            dishes.append('    <div class="dish"><div class="n">%s%s</div>%s%s</div>'
+                          % (esc(it["name"]), chips, desc, "".join(shops)))
+        blocks.append('    <div class="stage"><i style="background:var(--orange)"></i>%s</div>\n%s'
+                      % (esc(group["city"]), "\n".join(dishes)))
+    note_html = '\n    <div class="src-note">%s</div>' % esc(note) if note else ""
+    return ('\n  <section>\n    <div class="sec-title"><span class="bar"></span>当地美食推荐</div>\n%s%s\n  </section>'
+            % ("\n".join(blocks), note_html))
+
+
 def render_tickets(tickets, total, note):
     if not tickets:
         return ""
@@ -387,6 +424,7 @@ def main():
         backup_block=backup,
         weather_block=render_weather(d.get("weather", []), d.get("weather_note", "")),
         stages_block=render_stages(d.get("stages", [])),
+        food_block=render_food(d.get("food", []), d.get("food_note", "")),
         tickets_block=render_tickets(d.get("tickets", []), d.get("tickets_total", ""), d.get("budget_note", "")),
         clothing_block=render_clothing(d.get("clothing", [])),
         tips_block=render_tips(d.get("tips", [])),

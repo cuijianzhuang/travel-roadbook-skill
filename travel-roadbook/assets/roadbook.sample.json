@@ -44,6 +44,55 @@
       ]
     }
   ],
+  "food": [
+    {
+      "city": "康定",
+      "items": [
+        {
+          "name": "牦牛肉汤锅",
+          "tags": [
+            "当季",
+            "暖身"
+          ],
+          "desc": "清汤炖牦牛肉与牛骨，高原第一晚喝热汤、少油腻，适合适应海拔。",
+          "shops": [
+            {
+              "name": "店名按高德 maps_text_search 实查",
+              "note": "人均 · 营业时间 · 是否排队（查不到留空）",
+              "map_url": "https://uri.amap.com/marker?position=LNG,LAT&name=%E5%BA%97%E5%90%8D&src=roadbook&coordinate=gaode&callnative=1"
+            }
+          ]
+        },
+        {
+          "name": "酥油茶 · 糌粑",
+          "tags": [
+            "藏式早餐"
+          ],
+          "desc": "酥油茶咸香、糌粑用青稞粉拌茶捏团，初次尝试先少量。"
+        }
+      ]
+    },
+    {
+      "city": "稻城 · 香格里拉镇",
+      "items": [
+        {
+          "name": "藏式包子",
+          "tags": [
+            "小吃"
+          ],
+          "desc": "牦牛肉馅，进景区前当早餐或带着走。",
+          "shops": [
+            {
+              "name": "店名按高德 maps_text_search 实查",
+              "note": "靠近住宿/景区入口，写明步行距离",
+              "map_url": "https://uri.amap.com/marker?position=LNG,LAT&name=%E5%BA%97%E5%90%8D&src=roadbook&coordinate=gaode&callnative=1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "food_note": "推荐店来自高德地图检索（YYYY-MM-DD 查询）；人均与营业时间以店家当日为准，节假日可能调整。",
   "tickets": [
     {"name": "稻城亚丁景区", "price": "门票146元/人", "book": "旺季限流，提前在官方小程序实名预约"},
     {"name": "景区观光车", "price": "120元/人", "book": "必购，扎灌崩—扎灌崩往返"},

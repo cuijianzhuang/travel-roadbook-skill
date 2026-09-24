@@ -82,6 +82,60 @@
       ]
     }
   ],
+  "food": [
+    {
+      "city": "苏黎世",
+      "items": [
+        {
+          "name": "Zürcher Geschnetzeltes",
+          "tags": [
+            "招牌菜"
+          ],
+          "desc": "奶油蘑菇小牛肉片，通常配 Rösti（瑞士薯饼）。",
+          "shops": [
+            {
+              "name": "推荐店按 Google Maps 地点检索实查",
+              "note": "评分注明来源 · 价位 · 营业时间 · 是否需预约",
+              "map_url": "https://www.google.com/maps/search/?api=1&query=Z%C3%BCrcher+Geschnetzeltes+Z%C3%BCrich"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "city": "卢塞恩",
+      "items": [
+        {
+          "name": "Luzerner Chügelipastete",
+          "tags": [
+            "本地特色"
+          ],
+          "desc": "卢塞恩传统酥皮馅饼，内馅为小牛肉丸与奶油酱。",
+          "shops": [
+            {
+              "name": "推荐店按 Google Maps 地点检索实查",
+              "note": "老城区优先，避开景点门口高价店",
+              "map_url": "https://www.google.com/maps/search/?api=1&query=Luzerner+Ch%C3%BCgelipastete+Luzern"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "city": "因特拉肯",
+      "items": [
+        {
+          "name": "Käsefondue · Raclette",
+          "tags": [
+            "山区",
+            "冷天"
+          ],
+          "desc": "奶酪火锅与烤奶酪，配面包、土豆和酸黄瓜；两人份起点更划算。"
+        }
+      ]
+    }
+  ],
+  "food_note": "推荐店来自 Google Maps 地点检索（YYYY-MM-DD 查询），评分与价位以 Google 当日数据为准；瑞士餐厅多有午晚餐间休，周日部分歇业。",
   "tickets": [
     {
       "name": "城际火车",
