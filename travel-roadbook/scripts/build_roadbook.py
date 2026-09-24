@@ -13,7 +13,8 @@ build_roadbook.py — 旅行路书网页构建器
 地图二选一：
     amap_uri   国内，高德 amapuri:// 行程链接（maps_schema_personal_map 返回）
     gmaps_url  国外，Google Maps https 路线链接（全程总览）
-每站可选 map_url（当日 Google Maps / 高德 https 链接），渲染为“地图”行。
+每站可选 map_url（当日 Google Maps / 高德 https 链接），渲染为“地图”按钮。
+map_summary 可覆盖“行程链接”卡片上的路线摘要（默认从 gmaps_url 解析）。
 
 JSON 字段见 assets/roadbook.sample.json（国内）与 assets/roadbook.google.sample.json（国外）。
 所有动态文本均做 HTML 转义。
@@ -22,6 +23,8 @@ import json
 import sys
 import html
 import os
+import re
+from urllib.parse import urlsplit, parse_qs
 from string import Template
 
 CSS = r"""
@@ -77,10 +80,15 @@ CSS = r"""
   .copy-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;display:flex;gap:10px;align-items:stretch;}
   .link-box{
     flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:10px 12px;
-    font-size:11.5px;color:var(--sub);word-break:break-all;line-height:1.5;background:#fafbfc;user-select:all;
+    font-size:14px;color:var(--ink);line-height:1.5;background:#fafbfc;
   }
+  .link-box .route{font-weight:600;overflow-wrap:anywhere;}
+  .link-box .mode{display:block;font-size:12px;color:var(--sub);font-weight:400;margin-top:2px;}
+  .link-box details{margin-top:6px;}
+  .link-box summary{font-size:12px;color:var(--sub);cursor:pointer;}
+  .link-box .raw{margin-top:4px;font-size:11px;color:#8a94a1;word-break:break-all;user-select:all;}
   .btn-copy{
-    flex:none;width:76px;border:1px solid var(--deep);color:var(--deep);background:#fff;
+    flex:none;width:76px;height:44px;align-self:center;border:1px solid var(--deep);color:var(--deep);background:#fff;
     border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;
   }
   .btn-copy:active{background:#eef3f9;}
@@ -99,7 +107,7 @@ CSS = r"""
   .wk .t{font-size:13.5px;color:var(--sub);text-align:right;}
   .wk .t b{color:var(--ink);font-size:15px;}
   .src-note{font-size:12px;color:#8a94a1;margin-top:8px;line-height:1.6;}
-  .tl{display:grid;grid-template-columns:58px 22px 1fr;column-gap:0;position:relative;}
+  .tl{display:grid;grid-template-columns:58px 22px minmax(0,1fr);column-gap:0;position:relative;}
   .tl::before{content:"";position:absolute;left:68px;top:0;bottom:0;width:2px;background:var(--line);}
   .tl .t{font-size:12.5px;color:var(--sub);padding:10px 0;text-align:right;line-height:1.35;}
   .tl .axis{position:relative;}
@@ -112,7 +120,15 @@ CSS = r"""
   .d .tag{flex:none;align-self:flex-start;min-width:26px;text-align:center;font-size:11px;font-weight:600;color:#fff;border-radius:4px;padding:1.5px 6px;letter-spacing:.03em;}
   .tag.w{background:var(--deep);} .tag.p{background:var(--green);} .tag.f{background:var(--orange);}
   .tag.m{background:#7c3aed;} .tag.t{background:#8a94a1;} .tag.g{background:#1a73e8;}
-  .d a{color:#1a73e8;word-break:break-all;}
+  .map-btn{
+    display:inline-flex;align-items:center;gap:5px;max-width:100%;text-decoration:none;
+    color:#1a73e8;background:#eaf2fe;border:1px solid #c6dafc;border-radius:999px;
+    padding:3px 10px 3px 8px;font-size:12.5px;font-weight:600;line-height:1.4;
+  }
+  .map-btn:active{background:#d6e6fd;}
+  .map-btn svg{flex:none;}
+  .map-btn span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .d .map-btn{min-width:0;}
   .stage{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--sub);margin:18px 0 8px;letter-spacing:.04em;}
   .stage i{width:8px;height:8px;border-radius:50%;display:inline-block;}
   table.tk{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;font-size:13px;}
@@ -140,7 +156,7 @@ JS = r"""
   }
   if(btn&&box){
     btn.addEventListener('click',function(){
-      var text=box.textContent.replace(/\s+/g,'');
+      var text=box.getAttribute('data-url');
       if(navigator.clipboard&&navigator.clipboard.writeText){
         navigator.clipboard.writeText(text).then(function(){show('已复制，去浏览器地址栏粘贴');},function(){fallback(text);});
       }else{fallback(text);}
@@ -199,7 +215,10 @@ $steps
   <section>
     <div class="sec-title"><span class="bar"></span>行程链接（备用）</div>
     <div class="copy-card">
-      <div class="link-box" id="linkBox">$map_uri_text</div>
+      <div class="link-box" id="linkBox" data-url="$map_uri">
+        <div class="route">$route_summary<span class="mode">$route_mode</span></div>
+        <details><summary>查看完整链接</summary><div class="raw">$map_uri</div></details>
+      </div>
       <button class="btn-copy" id="btnCopy" type="button">复制</button>
     </div>
   </section>
@@ -234,15 +253,31 @@ MAP_TEXT = {
     "google": {
         "wechat_tip": "Google 地图在国内网络下可能无法打开：出发前请在 Google 地图 App 中下载目的地离线区域，或备用 Organic Maps；微信内请先点右上角「···」→「在浏览器中打开」。",
         "cta_title": "在 Google 地图中打开行程",
-        "cta_sub": "已安装 App 时自动唤起，否则在浏览器中打开",
+        "cta_sub": "已装 App 直接跳到 App，未装则打开网页版",
         "cta_note": "建议安装「Google Maps」App 并提前下载离线地图",
         "steps": [
             "在<b>手机浏览器</b>（Safari / Chrome）中打开本页；微信内请先用「在浏览器中打开」。",
-            "点击上方按钮查看<b>全程总览</b>；逐站路书中的「地图」链接是当天的路线。",
+            "点击上方按钮：已装 Google 地图 App 的手机会<b>直接跳到 App</b> 显示全程路线，没装则打开网页版。",
+            "逐站路书里的蓝色「地图」按钮是<b>当天路线</b>，同样会跳到 App，可直接开始导航。",
             "若没有反应，复制下面的链接，粘贴到手机浏览器地址栏打开。",
         ],
     },
 }
+
+TRAVEL_MODES = {"driving": "自驾", "walking": "步行", "transit": "公共交通", "bicycling": "骑行", "two-wheeler": "摩托"}
+PIN_SVG = ('<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.5 4 9.8 '
+           '4 15.2 11.2 21.6 11.6 22c.2.2.6.2.8 0 .4-.4 7.6-6.8 7.6-12.2C20 5.5 16.4 2 12 2zm0 10.6a2.8 2.8 0 1 1 '
+           '0-5.6 2.8 2.8 0 0 1 0 5.6z" fill="currentColor"/></svg>')
+
+
+def gmaps_route(url):
+    """从 Google Maps dir 链接取出途经点与出行方式，用于页面上的可读摘要。"""
+    q = parse_qs(urlsplit(url).query)
+    first = lambda k: q.get(k, [""])[0]
+    points = [first("origin")] + [w for w in first("waypoints").split("|") if w] + [first("destination")]
+    points = [p if re.fullmatch(r"\s*-?[\d.]+\s*,\s*-?[\d.]+\s*", p) else p.split(",")[0].strip()
+              for p in points if p]
+    return " → ".join(points), TRAVEL_MODES.get(first("travelmode"), "")
 STAGE_COLORS = {"blue": "var(--deep)", "green": "var(--green)", "orange": "var(--orange)"}
 
 
@@ -273,9 +308,9 @@ def render_stop(stop, color):
                         % (TAG_COLORS[key], TAG_LABELS[key], esc(val)))
     url = stop.get("map_url", "")
     if url.startswith("https://"):
-        rows.append('<div class="d"><span class="tag g">地图</span><span>'
-                    '<a href="%s" target="_blank" rel="noopener">%s</a></span></div>'
-                    % (esc(url), esc(stop.get("map_label", "打开当日路线"))))
+        rows.append('<div class="d"><span class="tag g">地图</span>'
+                    '<a class="map-btn" href="%s" target="_blank" rel="noopener">%s<span>%s</span> ›</a></div>'
+                    % (esc(url), PIN_SVG, esc(stop.get("map_label", "打开当日路线"))))
     km = '<span class="km">%s</span>' % esc(stop["km"]) if stop.get("km") else ""
     return (
         '      <div class="t">%s<br>%s</div><div class="axis"><div class="dot %s"></div></div>\n'
@@ -357,6 +392,12 @@ def main():
     provider = "google" if gmaps else "amap"
     map_uri = gmaps or amap
     text = MAP_TEXT[provider]
+    if provider == "google":
+        route, mode = gmaps_route(map_uri)
+        mode = "Google 地图 · 全程总览" + (" · " + mode if mode else "")
+    else:
+        route, mode = "高德地图行程", "点「复制」后粘贴到手机浏览器地址栏打开"
+    route = d.get("map_summary", route)
     h1 = "<br>".join(esc(x) for x in d["title_lines"]) if d.get("title_lines") else esc(d.get("title", "旅行路书"))
     page = PAGE.substitute(
         title=esc(d.get("title", "旅行路书")),
@@ -372,7 +413,8 @@ def main():
         steps="\n".join("      <li>%s</li>" % li for li in text["steps"]),
         map_uri=esc(map_uri),
         map_target=' target="_blank" rel="noopener"' if provider == "google" else "",
-        map_uri_text=esc(map_uri),
+        route_summary=esc(route),
+        route_mode=esc(mode),
         weather_block=render_weather(d.get("weather", []), d.get("weather_note", "")),
         stages_block=render_stages(d.get("stages", [])),
         tickets_block=render_tickets(d.get("tickets", []), d.get("tickets_total", ""), d.get("budget_note", "")),
