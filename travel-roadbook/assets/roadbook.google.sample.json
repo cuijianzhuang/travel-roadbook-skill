@@ -6,31 +6,50 @@
     "5天火车路书"
   ],
   "subtitle": "示例数据 · 3 城 · 火车为主 · 所有车次、票价、天气须按实际查询替换",
-  "gmaps_url": "https://www.google.com/maps/dir/?api=1&origin=Z%C3%BCrich+HB%2C+Z%C3%BCrich&destination=Interlaken+Ost%2C+Interlaken&travelmode=transit&waypoints=Luzern%2C+Luzern",
+  "gmaps_url": "https://www.google.com/maps/dir/?api=1&origin=Z%C3%BCrich+HB%2C+Z%C3%BCrich&destination=Interlaken+Ost%2C+Interlaken&travelmode=driving&waypoints=Luzern%2C+Luzern",
+  "updated_at": "YYYY-MM-DDTHH:MM:00+02:00",
+  "alerts": [
+    {
+      "level": "warn",
+      "date": "D3",
+      "city": "Luzern",
+      "text": "替换为已公告的罢工（Streik / grève / sciopero）、恶劣天气预警或景点临时关闭；没有就写空数组 []",
+      "url": "https://替换为公告来源链接"
+    }
+  ],
   "weather": [
     {
       "city": "Zürich",
       "label": "D1-D2",
       "day": "YY",
       "night": "YY",
-      "text": "替换为实际预报/气候均值"
+      "text": "替换为实际预报/气候均值",
+      "kind": "forecast",
+      "sunrise": "HH:MM",
+      "sunset": "HH:MM"
     },
     {
       "city": "Luzern",
       "label": "D3",
       "day": "YY",
       "night": "YY",
-      "text": "替换为实际预报/气候均值"
+      "text": "替换为实际预报/气候均值",
+      "kind": "forecast",
+      "sunrise": "HH:MM",
+      "sunset": "HH:MM"
     },
     {
       "city": "Interlaken",
       "label": "D4-D5",
       "day": "YY",
       "night": "YY",
-      "text": "替换为实际预报/气候均值"
+      "text": "替换为实际预报/气候均值",
+      "kind": "climate",
+      "sunrise": "HH:MM",
+      "sunset": "HH:MM"
     }
   ],
-  "weather_note": "出发 ≤10 天用预报，否则同期气候均值，并注明查询日期（YYYY-MM-DD）与来源。",
+  "weather_note": "出发 ≤10 天用预报，否则同期气候均值；日出日落按城市实查。注明查询日期（YYYY-MM-DD）与来源。",
   "stages": [
     {
       "name": "苏黎世 · D1 – D2",

@@ -4,10 +4,14 @@
   "title_lines": ["成都 → 稻城亚丁", "6天自驾路书"],
   "subtitle": "10/1 出发 · 全程约 1700km · 去程2天 · 亚丁2天 · 返程2天",
   "amap_uri": "amapuri://workInAmap/createWithToken?polymericId=REPLACE_WITH_REAL_TOKEN&from=MCP",
+  "updated_at": "YYYY-MM-DDTHH:MM:00+08:00",
+  "alerts": [
+    {"level": "warn", "date": "10/2", "city": "稻城", "text": "替换为已公告的恶劣天气预警、道路/景区临时关闭或限流公告；没有就写空数组 []", "url": "https://替换为公告来源链接"}
+  ],
   "weather": [
-    {"city": "成都", "label": "10/1 出发", "day": 24, "night": 17, "text": "多云"},
-    {"city": "康定", "label": "10/1 宿", "day": 16, "night": 4, "text": "阵雨转多云"},
-    {"city": "稻城", "label": "10/2-3", "day": 14, "night": -2, "text": "晴"}
+    {"city": "成都", "label": "10/1 出发", "day": 24, "night": 17, "text": "多云", "kind": "forecast"},
+    {"city": "康定", "label": "10/1 宿", "day": 16, "night": 4, "text": "阵雨转多云", "kind": "forecast"},
+    {"city": "稻城", "label": "10/2-3", "day": 14, "night": -2, "text": "晴", "kind": "climate"}
   ],
   "weather_note": "温度为高德天气实时预报（YYYY-MM-DD 查询）；高原昼夜温差大，出发前请再用高德天气更新最新预报。高德天气仅提供未来约4天预报，行程超出部分按同期气候参考并在此注明。",
   "stages": [
@@ -20,13 +24,17 @@
           "weather": "16°/4°，阵雨转多云，折多山可能有雾",
           "spots": "折多山垭口（海拔4298m，短暂停留）· 溜溜城夜景",
           "food": "牦牛肉汤锅、酥油茶、糌粑",
-          "tips": "翻折多山控制车速；康定海拔2560m，为高原适应第一晚，别洗澡、早睡"
+          "tips": "翻折多山控制车速；康定海拔2560m，为高原适应第一晚，别洗澡、早睡",
+          "map_url": "https://uri.amap.com/navigation?from=LNG,LAT,%E6%88%90%E9%83%BD&to=LNG,LAT,%E5%BA%B7%E5%AE%9A&mode=car&src=roadbook&coordinate=gaode&callnative=1",
+          "map_label": "成都 → 康定 导航"
         },
         {
           "date": "10/2", "time": "到达", "name": "香格里拉镇（稻城亚丁）", "km": "约420km · 约8h",
           "weather": "14°/-2°，晴，夜间严寒",
           "spots": "沿途天路十八弯、卡子拉山、海子山观景台",
-          "tips": "海拔2900m住宿；当晚不安排景区，红景天提前3天服用"
+          "tips": "海拔2900m住宿；当晚不安排景区，红景天提前3天服用",
+          "map_url": "https://uri.amap.com/navigation?from=LNG,LAT,%E5%BA%B7%E5%AE%9A&to=LNG,LAT,%E9%A6%99%E6%A0%BC%E9%87%8C%E6%8B%89%E9%95%87&mode=car&src=roadbook&coordinate=gaode&callnative=1",
+          "map_label": "康定 → 香格里拉镇 导航"
         }
       ]
     },
@@ -45,52 +53,24 @@
     }
   ],
   "food": [
-    {
-      "city": "康定",
-      "items": [
-        {
-          "name": "牦牛肉汤锅",
-          "tags": [
-            "当季",
-            "暖身"
-          ],
-          "desc": "清汤炖牦牛肉与牛骨，高原第一晚喝热汤、少油腻，适合适应海拔。",
-          "shops": [
-            {
-              "name": "店名按高德 maps_text_search 实查",
-              "note": "人均 · 营业时间 · 是否排队（查不到留空）",
-              "map_url": "https://uri.amap.com/marker?position=LNG,LAT&name=%E5%BA%97%E5%90%8D&src=roadbook&coordinate=gaode&callnative=1"
-            }
-          ]
-        },
-        {
-          "name": "酥油茶 · 糌粑",
-          "tags": [
-            "藏式早餐"
-          ],
-          "desc": "酥油茶咸香、糌粑用青稞粉拌茶捏团，初次尝试先少量。"
-        }
-      ]
-    },
-    {
-      "city": "稻城 · 香格里拉镇",
-      "items": [
-        {
-          "name": "藏式包子",
-          "tags": [
-            "小吃"
-          ],
-          "desc": "牦牛肉馅，进景区前当早餐或带着走。",
-          "shops": [
-            {
-              "name": "店名按高德 maps_text_search 实查",
-              "note": "靠近住宿/景区入口，写明步行距离",
-              "map_url": "https://uri.amap.com/marker?position=LNG,LAT&name=%E5%BA%97%E5%90%8D&src=roadbook&coordinate=gaode&callnative=1"
-            }
-          ]
-        }
-      ]
-    }
+    {"city": "康定", "items": [
+      {"name": "牦牛肉汤锅", "tags": ["当季", "暖身"],
+       "desc": "清汤炖牦牛肉与牛骨，高原第一晚喝热汤、少油腻，适合适应海拔。",
+       "shops": [
+         {"name": "店名按高德 maps_text_search 实查", "note": "人均 · 营业时间 · 是否排队（查不到留空）",
+          "map_url": "https://uri.amap.com/marker?position=LNG,LAT&name=%E5%BA%97%E5%90%8D&src=roadbook&coordinate=gaode&callnative=1"}
+       ]},
+      {"name": "酥油茶 · 糌粑", "tags": ["藏式早餐"],
+       "desc": "酥油茶咸香、糌粑用青稞粉拌茶捏团，初次尝试先少量。"}
+    ]},
+    {"city": "稻城 · 香格里拉镇", "items": [
+      {"name": "藏式包子", "tags": ["小吃"],
+       "desc": "牦牛肉馅，进景区前当早餐或带着走。",
+       "shops": [
+         {"name": "店名按高德 maps_text_search 实查", "note": "靠近住宿/景区入口，写明步行距离",
+          "map_url": "https://uri.amap.com/marker?position=LNG,LAT&name=%E5%BA%97%E5%90%8D&src=roadbook&coordinate=gaode&callnative=1"}
+       ]}
+    ]}
   ],
   "food_note": "推荐店来自高德地图检索（YYYY-MM-DD 查询）；人均与营业时间以店家当日为准，节假日可能调整。",
   "tickets": [
