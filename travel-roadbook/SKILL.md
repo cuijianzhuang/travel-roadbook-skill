@@ -265,7 +265,7 @@ python3 scripts/build_roadbook.py <data.json> [输出.html]
   - 国内填 `amap_uri`（高德 amapuri 链接），模板 `assets/roadbook.sample.json`。
   - 国外填 `gmaps_url`（Google Maps 全程总览 https 链接），模板 `assets/roadbook.google.sample.json`；按钮自动切换为“在 Google 地图中打开行程”，不附加打开提示。
   - 每站可加 `map_url`（当日路线 https 链接）和 `map_label`（按钮文字，≤12 字，过长会省略），显示为蓝色“地图”按钮。
-  - “行程链接（备用）”卡片默认显示从 `gmaps_url` 解析的路线摘要（如 `Zürich HB → Luzern → Interlaken Ost · 公共交通`），完整链接折叠在下方，“复制”复制完整链接；可用 `map_summary` 自定义摘要。
+  - “行程链接（备用）”复制卡片只在高德版出现（amapuri 在部分浏览器无反应时复制到别的浏览器打开）；Google 版按钮即 https 链接，不设备用卡片。
 - **不适用**：欧洲完整版的抢票日历、签证清单、城际交通表等模块，以及模式 A（不接 db）；需要这些时按对应章节手写页面。
 - **用法**：复制对应模板为本次数据文件，把字段全部替换成本次采集的真实数据：`amap_uri` 填 `maps_schema_personal_map` 返回的原始链接、`gmaps_url`/`map_url` 按“Google Maps 接入”拼接，里程、天气、票价按“内容口径”填写，示例中的 `REPLACE_WITH_REAL_TOKEN`、`YYYY-MM-DD`、`YY`、“替换为…”“按…实查”等占位内容不得留在成品里。不传输出路径时，输出到 JSON 同目录同名 `.html`。
 - 所有文本字段会做 HTML 转义；`footer` 里只有 `<br>` 会保留为换行。

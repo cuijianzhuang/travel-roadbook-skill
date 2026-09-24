@@ -14,7 +14,6 @@ build_roadbook.py — 旅行路书网页构建器
     amap_uri   国内，高德 amapuri:// 行程链接（maps_schema_personal_map 返回）
     gmaps_url  国外，Google Maps https 路线链接（全程总览）
 每站可选 map_url（当日 Google Maps / 高德 https 链接），渲染为“地图”按钮。
-map_summary 可覆盖“行程链接”卡片上的路线摘要（默认从 gmaps_url 解析）。
 
 JSON 字段见 assets/roadbook.sample.json（国内）与 assets/roadbook.google.sample.json（国外）。
 所有动态文本均做 HTML 转义。
@@ -23,8 +22,6 @@ import json
 import sys
 import html
 import os
-import re
-from urllib.parse import urlsplit, parse_qs
 from string import Template
 
 CSS = r"""
@@ -202,19 +199,7 @@ $wechat_block
       $cta_title$cta_sub_block
     </a>$cta_note_block
   </div>
-$steps_block
-
-  <section>
-    <div class="sec-title"><span class="bar"></span>行程链接（备用）</div>
-    <div class="copy-card">
-      <div class="link-box" id="linkBox" data-url="$map_uri">
-        <div class="route">$route_summary<span class="mode">$route_mode</span></div>
-        <details><summary>查看完整链接</summary><div class="raw">$map_uri</div></details>
-      </div>
-      <button class="btn-copy" id="btnCopy" type="button">复制</button>
-    </div>
-  </section>
-$weather_block
+$steps_block$backup_block$weather_block
 $stages_block
 $tickets_block
 $clothing_block
@@ -252,20 +237,10 @@ MAP_TEXT = {
     },
 }
 
-TRAVEL_MODES = {"driving": "自驾", "walking": "步行", "transit": "公共交通", "bicycling": "骑行", "two-wheeler": "摩托"}
 PIN_SVG = ('<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.5 4 9.8 '
            '4 15.2 11.2 21.6 11.6 22c.2.2.6.2.8 0 .4-.4 7.6-6.8 7.6-12.2C20 5.5 16.4 2 12 2zm0 10.6a2.8 2.8 0 1 1 '
            '0-5.6 2.8 2.8 0 0 1 0 5.6z" fill="currentColor"/></svg>')
 
-
-def gmaps_route(url):
-    """从 Google Maps dir 链接取出途经点与出行方式，用于页面上的可读摘要。"""
-    q = parse_qs(urlsplit(url).query)
-    first = lambda k: q.get(k, [""])[0]
-    points = [first("origin")] + [w for w in first("waypoints").split("|") if w] + [first("destination")]
-    points = [p if re.fullmatch(r"\s*-?[\d.]+\s*,\s*-?[\d.]+\s*", p) else p.split(",")[0].strip()
-              for p in points if p]
-    return " → ".join(points), TRAVEL_MODES.get(first("travelmode"), "")
 STAGE_COLORS = {"blue": "var(--deep)", "green": "var(--green)", "orange": "var(--orange)"}
 
 
@@ -380,12 +355,18 @@ def main():
     provider = "google" if gmaps else "amap"
     map_uri = gmaps or amap
     text = MAP_TEXT[provider]
-    if provider == "google":
-        route, mode = gmaps_route(map_uri)
-        mode = "Google 地图 · 全程总览" + (" · " + mode if mode else "")
-    else:
-        route, mode = "高德地图行程", "点「复制」后粘贴到手机浏览器地址栏打开"
-    route = d.get("map_summary", route)
+    # 备用链接卡片只给高德：amapuri 在部分浏览器点了没反应，需要复制到别的浏览器打开；
+    # Google 按钮本身就是 https 链接，不需要备用
+    backup = ""
+    if provider == "amap":
+        backup = ('\n  <section>\n    <div class="sec-title"><span class="bar"></span>行程链接（备用）</div>\n'
+                  '    <div class="copy-card">\n'
+                  '      <div class="link-box" id="linkBox" data-url="%s">\n'
+                  '        <div class="route">高德地图行程<span class="mode">点「复制」后粘贴到手机浏览器地址栏打开</span></div>\n'
+                  '        <details><summary>查看完整链接</summary><div class="raw">%s</div></details>\n'
+                  '      </div>\n'
+                  '      <button class="btn-copy" id="btnCopy" type="button">复制</button>\n'
+                  '    </div>\n  </section>' % (esc(map_uri), esc(map_uri)))
     h1 = "<br>".join(esc(x) for x in d["title_lines"]) if d.get("title_lines") else esc(d.get("title", "旅行路书"))
     page = PAGE.substitute(
         title=esc(d.get("title", "旅行路书")),
@@ -403,8 +384,7 @@ def main():
                      % "\n".join("      <li>%s</li>" % li for li in text["steps"])) if text["steps"] else "",
         map_uri=esc(map_uri),
         map_target=' target="_blank" rel="noopener"' if provider == "google" else "",
-        route_summary=esc(route),
-        route_mode=esc(mode),
+        backup_block=backup,
         weather_block=render_weather(d.get("weather", []), d.get("weather_note", "")),
         stages_block=render_stages(d.get("stages", [])),
         tickets_block=render_tickets(d.get("tickets", []), d.get("tickets_total", ""), d.get("budget_note", "")),
