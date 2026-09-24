@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Playwright and qrcode
+        run: |
+          pip install playwright 'qrcode[pil]'
+          python -m playwright install --with-deps chromium
+      - name: Shellcheck
+        run: shellcheck travel-roadbook/scripts/deploy.sh
+      - name: Tests
+        run: python -m unittest discover -s tests -v
+      - name: Package skill
+        run: python tools/package.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: travel-roadbook-skill
+          path: dist/travel-roadbook.zip
