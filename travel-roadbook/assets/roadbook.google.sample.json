@@ -1,0 +1,111 @@
+{
+  "title": "示例：苏黎世 → 卢塞恩 → 因特拉肯 5天火车路书",
+  "eyebrow": "火车路书 · 瑞士",
+  "title_lines": [
+    "苏黎世 → 卢塞恩 → 因特拉肯",
+    "5天火车路书"
+  ],
+  "subtitle": "示例数据 · 3 城 · 火车为主 · 所有车次、票价、天气须按实际查询替换",
+  "gmaps_url": "https://www.google.com/maps/dir/?api=1&origin=Z%C3%BCrich+HB%2C+Z%C3%BCrich&destination=Interlaken+Ost%2C+Interlaken&travelmode=transit&waypoints=Luzern%2C+Luzern",
+  "weather": [
+    {
+      "city": "Zürich",
+      "label": "D1-D2",
+      "day": "YY",
+      "night": "YY",
+      "text": "替换为实际预报/气候均值"
+    },
+    {
+      "city": "Luzern",
+      "label": "D3",
+      "day": "YY",
+      "night": "YY",
+      "text": "替换为实际预报/气候均值"
+    },
+    {
+      "city": "Interlaken",
+      "label": "D4-D5",
+      "day": "YY",
+      "night": "YY",
+      "text": "替换为实际预报/气候均值"
+    }
+  ],
+  "weather_note": "出发 ≤10 天用预报，否则同期气候均值，并注明查询日期（YYYY-MM-DD）与来源。",
+  "stages": [
+    {
+      "name": "苏黎世 · D1 – D2",
+      "color": "blue",
+      "stops": [
+        {
+          "date": "D1",
+          "time": "抵达",
+          "name": "苏黎世",
+          "spots": "老城 · 利马特河沿岸 · 班霍夫大街（抵达首日轻松散步，倒时差）",
+          "food": "苏黎世式小牛肉配薯饼（Zürcher Geschnetzeltes mit Rösti）",
+          "tips": "周日多数商店关门；机场到 HB 乘火车",
+          "map_url": "https://www.google.com/maps/dir/?api=1&origin=Z%C3%BCrich+Airport&destination=Z%C3%BCrich+HB%2C+Z%C3%BCrich&travelmode=transit",
+          "map_label": "机场 → 苏黎世 HB"
+        }
+      ]
+    },
+    {
+      "name": "卢塞恩 · D3",
+      "color": "green",
+      "stops": [
+        {
+          "date": "D3",
+          "time": "换城",
+          "name": "卢塞恩",
+          "km": "苏黎世 HB → 卢塞恩 · 车次与时长按 SBB 实查",
+          "spots": "卡佩尔廊桥 · 狮子纪念碑 · 琉森湖",
+          "tickets": "按官网实查价格与开放时间，标注币种 CHF 与查询日期",
+          "tips": "换城日按损失半天安排",
+          "map_url": "https://www.google.com/maps/dir/?api=1&origin=Kapellbr%C3%BCcke%2C+Luzern&destination=L%C3%B6wendenkmal%2C+Luzern&travelmode=walking&waypoints=Altstadt+Luzern",
+          "map_label": "卡佩尔廊桥 → 狮子纪念碑（步行）"
+        }
+      ]
+    },
+    {
+      "name": "因特拉肯 · D4 – D5",
+      "color": "orange",
+      "stops": [
+        {
+          "date": "D4",
+          "time": "换城",
+          "name": "因特拉肯",
+          "km": "卢塞恩 → 因特拉肯东 · 车次与时长按 SBB 实查",
+          "spots": "图恩湖/布里恩茨湖；少女峰等山上项目看天气择日",
+          "tips": "高山项目按当日天气与能见度决定，保留“可选”",
+          "map_url": "https://www.google.com/maps/dir/?api=1&origin=Luzern%2C+Luzern&destination=Interlaken+Ost%2C+Interlaken&travelmode=transit",
+          "map_label": "卢塞恩 → 因特拉肯东"
+        }
+      ]
+    }
+  ],
+  "tickets": [
+    {
+      "name": "城际火车",
+      "price": "CHF 按 SBB 实查",
+      "book": "是否需订座、通票是否划算按官网核实"
+    }
+  ],
+  "tickets_total": "外币金额 × 当日汇率换算人民币，注明汇率日期。",
+  "budget_note": "价格为示例占位，须按官网实查替换；旺季可能浮动。",
+  "clothing": [
+    {
+      "group": "城市（按最低夜温分层）",
+      "items": "速干内层 + 薄外套；石板路穿舒适步行鞋；雨具。"
+    },
+    {
+      "group": "高山（低温、风大、日晒强）",
+      "items": "抓绒/羽绒 + 防风外套，墨镜、防晒霜。"
+    }
+  ],
+  "tips": [
+    "瑞士是申根非欧盟：货币 CHF，手机漫游另计。",
+    "插头为 J 型，需转换插头。",
+    "欧盟/瑞士急救 112；外交部全球领保热线 +86-10-12308。",
+    "Google 地图国内网络可能打不开，出发前下载离线区域。"
+  ],
+  "footer": "示例数据 · 发布前替换为实查结果并注明来源与查询日期"
+}

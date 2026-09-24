@@ -10,7 +10,7 @@ description: 旅行行程规划与手机路书网页：国内自驾/出游走高
 **第一步先分流**：
 - 目的地在中国大陆 → **国内分支（高德）**
 - 目的地在欧洲 → **欧洲分支（Google Maps + 火车 + 签证）**
-- 其他境外目的地：按欧洲分支的思路处理，签证/交通规则逐项重新核实。
+- 其他境外目的地：按欧洲分支的思路处理（地图同样走 Google Maps），签证/交通规则逐项重新核实。
 
 ## 通用流程
 
@@ -110,14 +110,32 @@ description: 旅行行程规划与手机路书网页：国内自驾/出游走高
 
 ## 工具链
 
-- **交通**：WebSearch/WebFetch 查运营商官网或 Trainline/Omio 的车次时长、是否强制订座（TGV、Frecciarossa、Eurostar、AVE 等）、夜车；自驾里程查可追溯来源并标注“参考”。
-- **天气**：出发 ≤10 天用预报，否则同期气候均值；加写**日出日落**（北欧冬季下午 3–4 点天黑）。
+- **Google Maps 工具（优先）**：见下方“Google Maps 接入”。已连接时，自驾里程时长、城内步行/公交时长、地点坐标都用它实测；未连接时按下面各条用 WebSearch/WebFetch，并在页面标注“参考”。
+- **交通**：WebSearch/WebFetch 查运营商官网或 Trainline/Omio 的车次时长、是否强制订座（TGV、Frecciarossa、Eurostar、AVE 等）、夜车；火车以运营商官网为准，Google 公交路线只作交叉核对。
+- **天气**：出发 ≤10 天用预报（Google Maps 工具有天气时优先用），否则同期气候均值；加写**日出日落**（北欧冬季下午 3–4 点天黑）。
 - **门票**：官网核实价格、**开放预约时间**、闭馆日、免费日。
 - **节假日/罢工**：目的国公共假日（复活节、圣灵降临节、8 月意法本地人休假、圣诞新年闭馆）、周日商店关门（德奥等）、已公告罢工（sciopero / grève / Streik）。
 - **汇率**：查当日 EUR/CNY 等，页面注明日期。
 - **地图**：每天一个 Google Maps 路线链接（https）：
   `https://www.google.com/maps/dir/?api=1&origin=A&destination=B&waypoints=C|D&travelmode=walking|transit|driving`
   地名用英文/当地语 + 城市名并 URL 编码，waypoints ≤ 9；另附全程城市间总览链接。提示国内需网络条件才能打开，并给离线地图备选（Google 离线区域、Organic Maps）。
+
+## Google Maps 接入
+
+与国内高德同一原则：**里程、时长、坐标必须实测，不凭记忆**。
+
+1. **找工具**：开工前用 ToolSearch 搜 `google maps` / `directions` / `routes` / `places` / `geocode`，按返回的**真实 schema** 调用，禁止凭记忆构造参数。常见的 Google Maps MCP 提供：地点检索/地理编码、路线规划（driving / walking / transit）、距离矩阵，部分还有天气；以实际搜到的为准。
+2. **没有工具时**：告诉用户可在 claude.ai 连接器中添加 Google Maps（或自建 Google Maps MCP，需要 Google Maps Platform API Key 并开通 Places、Routes/Directions、Geocoding 等 API，密钥由用户自己保管，不要写进路书或仓库）。用户选择不接入时继续规划：自驾/步行时长改用可追溯来源，页面标注“参考，未实测”，不得用直线距离充数。
+3. **标准顺序**（已接入时）：
+   1. **列节点**：按日列出住宿、景点、车站/机场。
+   2. **取坐标/地点**：每个节点做地点检索或地理编码，用英文/当地语名称 + 城市 + 国家，避免重名（Paris, France vs Paris, Texas）；记下标准名称与坐标。
+   3. **逐段实测**：自驾段用 driving，城内用 walking/transit；写成 `"285km · 约3.2h"` 或 `"步行 1.8km · 约25min"`。多段可并行或用距离矩阵一次取。
+   4. **校验节奏**：每天把实测时长相加，对照下方“校验规则”（单日驾驶 ≤ 4–5 小时、步行量是否过大）。
+   5. **生成链接**：用第 2 步的标准名称拼每日与总览的 `https://www.google.com/maps/dir/?api=1...` 链接（地名比坐标可读，重名风险高时用 `纬度,经度`）。
+4. **已知坑**：
+   - 公交/火车时刻只是参考，班次、订座与罢工以运营商官网为准。
+   - 自驾时长是理想路况，山路、夏季海滨、周五傍晚出城按 +20%~40% 估；ZTL、Crit'Air、Vignette 不会体现在路线里，另行核实。
+   - 链接写进 HTML 时 `&` 转义为 `&amp;`；二维码编码路书网页链接，不编码地图链接。
 
 ## 校验规则
 
@@ -211,7 +229,7 @@ description: 旅行行程规划与手机路书网页：国内自驾/出游走高
 - **prompt 必须独立完整**（每次运行是全新会话，看不到本次对话），包含：
   1. 路书 Artifact 链接与模式（A 写 db / B 重新发布）。
   2. 行程节点清单：`日期 · 城市 · 国内用高德 city 名 / 境外用英文名 + 国家`。
-  3. 数据来源：国内天气用高德 `maps_weather`（先 ToolSearch 取 schema）；境外天气、日出日落、汇率、罢工与预警用 WebSearch/WebFetch 查官方或权威来源。
+  3. 数据来源：国内天气用高德 `maps_weather`（先 ToolSearch 取 schema）；境外天气优先用已连接的 Google Maps 天气工具（先 ToolSearch 确认存在），没有则 WebSearch；日出日落、汇率、罢工与预警用 WebSearch/WebFetch 查官方或权威来源。
   4. 更新规则：
      - 只把进入预报窗口的日期从 `climate` 换成 `forecast`，其余保留原值不动。
      - 查不到的数据保留旧值，不编造；`alerts` 只收已公告、有来源链接的事项，过期的移除。
@@ -219,7 +237,7 @@ description: 旅行行程规划与手机路书网页：国内自驾/出游走高
      - 模式 B：读取 Artifact 当前页面，只替换内嵌数据块与更新时间后原链接重新发布，不改其他内容。
   5. **推送条件**：新增 `severe` 预警、行程日天气出现暴雨/暴雪/高温红色等，或连续 2 天更新失败时，用 SendUserMessage 简短告诉用户；否则静默。
   6. **自行停用**：当前日期晚于 `tripEnd` 时，用 list_triggers 找到本任务并 update_trigger 设 `enabled:false`，然后结束。
-- **国内天气依赖高德**：高德必须是用户在 claude.ai 添加的连接器，定时任务的新会话才能用；否则任务改用 WebSearch 查天气并在 `source` 注明。
+- **地图工具必须是连接器**：高德 / Google Maps 必须是用户在 claude.ai 添加的连接器，定时任务的新会话才能用；否则任务改用 WebSearch 查天气并在 `source` 注明。
 - 任务建好后告诉用户：运行时间、截止日、需要“自动批准”才能无人值守写数据。
 
 ## 行程变更
@@ -238,9 +256,13 @@ description: 旅行行程规划与手机路书网页：国内自驾/出游走高
 python3 scripts/build_roadbook.py <data.json> [输出.html]
 ```
 
-- **适用**：国内分支的静态版（无 Artifact 环境、用户只要 HTML 文件、或模式 B 每日重新生成整页）。页面自带高德“一键打开行程”按钮、复制链接、天气速览、逐站时间轴、门票花费表、穿着建议、注意事项。
-- **不适用**：欧洲分支（没有 Google Maps、抢票日历、签证等模块）和模式 A（不接 db）；这两种情况按对应章节手写页面。
-- **用法**：复制 `assets/roadbook.sample.json` 为本次数据文件，把字段全部替换成本次采集的真实数据：`amap_uri` 填 `maps_schema_personal_map` 返回的原始链接，里程、天气、票价按“内容口径”填写，示例中的 `REPLACE_WITH_REAL_TOKEN`、`YYYY-MM-DD` 等占位符不得留在成品里。不传输出路径时，输出到 JSON 同目录同名 `.html`。
+- **适用**：静态版路书（无 Artifact 环境、用户只要 HTML 文件、或模式 B 每日重新生成整页）。页面自带地图“一键打开行程”按钮、复制链接、天气速览、逐站时间轴、门票花费表、穿着建议、注意事项。
+- **地图二选一**：
+  - 国内填 `amap_uri`（高德 amapuri 链接），模板 `assets/roadbook.sample.json`。
+  - 国外填 `gmaps_url`（Google Maps 全程总览 https 链接），模板 `assets/roadbook.google.sample.json`；按钮与提示文案自动切换为 Google 版（含国内网络与离线地图提示）。
+  - 每站可加 `map_url`（当日路线 https 链接）和 `map_label`（链接文字），显示为“地图”行。
+- **不适用**：欧洲完整版的抢票日历、签证清单、城际交通表等模块，以及模式 A（不接 db）；需要这些时按对应章节手写页面。
+- **用法**：复制对应模板为本次数据文件，把字段全部替换成本次采集的真实数据：`amap_uri` 填 `maps_schema_personal_map` 返回的原始链接、`gmaps_url`/`map_url` 按“Google Maps 接入”拼接，里程、天气、票价按“内容口径”填写，示例中的 `REPLACE_WITH_REAL_TOKEN`、`YYYY-MM-DD`、`YY`、“替换为…”“按…实查”等占位内容不得留在成品里。不传输出路径时，输出到 JSON 同目录同名 `.html`。
 - 所有文本字段会做 HTML 转义；`footer` 里只有 `<br>` 会保留为换行。
 - 生成后按第 5 步自检，再发布或交付文件。
 
@@ -251,5 +273,5 @@ pip3 install 'qrcode[pil]'   # 首次使用
 python3 scripts/make_qr.py <已发布的https链接> <输出.png>
 ```
 
-- 只编码发布后的 **https 网页链接**，不要编码 `amapuri://`（iOS 相机无法可靠识别）。
+- 只编码发布后的 **路书网页 https 链接**，不要编码 `amapuri://`（iOS 相机无法可靠识别），也不要编码 Google Maps 链接。
 - 二维码 PNG 随交付一起给用户，注明对应的链接。

@@ -6,11 +6,17 @@ build_roadbook.py — 旅行路书网页构建器
 用法:
     python3 build_roadbook.py roadbook.json [输出.html]
 
-读取一份结构化路书 JSON，渲染成自包含的手机端 HTML（含高德地图唤起按钮、
+读取一份结构化路书 JSON，渲染成自包含的手机端 HTML（含地图打开按钮、
 天气速览、逐站路书、门票花费、穿着建议、注意事项）。不传输出路径时，
 输出到与 JSON 同目录、同名的 .html。
 
-JSON 字段见 assets/roadbook.sample.json。所有动态文本均做 HTML 转义。
+地图二选一：
+    amap_uri   国内，高德 amapuri:// 行程链接（maps_schema_personal_map 返回）
+    gmaps_url  国外，Google Maps https 路线链接（全程总览）
+每站可选 map_url（当日 Google Maps / 高德 https 链接），渲染为“地图”行。
+
+JSON 字段见 assets/roadbook.sample.json（国内）与 assets/roadbook.google.sample.json（国外）。
+所有动态文本均做 HTML 转义。
 """
 import json
 import sys
@@ -105,7 +111,8 @@ CSS = r"""
   .d{display:flex;gap:7px;font-size:13px;color:#46505c;margin-top:4px;line-height:1.45;}
   .d .tag{flex:none;align-self:flex-start;min-width:26px;text-align:center;font-size:11px;font-weight:600;color:#fff;border-radius:4px;padding:1.5px 6px;letter-spacing:.03em;}
   .tag.w{background:var(--deep);} .tag.p{background:var(--green);} .tag.f{background:var(--orange);}
-  .tag.m{background:#7c3aed;} .tag.t{background:#8a94a1;}
+  .tag.m{background:#7c3aed;} .tag.t{background:#8a94a1;} .tag.g{background:#1a73e8;}
+  .d a{color:#1a73e8;word-break:break-all;}
   .stage{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--sub);margin:18px 0 8px;letter-spacing:.04em;}
   .stage i{width:8px;height:8px;border-radius:50%;display:inline-block;}
   table.tk{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;font-size:13px;}
@@ -172,29 +179,27 @@ PAGE = Template(r"""<!DOCTYPE html>
   <h1>$h1</h1>
   <p class="lead">$subtitle</p>
 
-  <div class="wechat-tip">微信内可能无法直接跳转高德：请先点右上角「···」→ 选择「在浏览器中打开」，再点下方按钮。</div>
+  <div class="wechat-tip">$wechat_tip</div>
 
   <div class="cta-card">
-    <a class="btn-open" href="$amap_uri">
-      在高德地图中打开行程
-      <span class="sub">自动唤起已安装的高德地图 App</span>
+    <a class="btn-open" href="$map_uri"$map_target>
+      $cta_title
+      <span class="sub">$cta_sub</span>
     </a>
-    <div class="cta-note">手机需已安装「高德地图」App</div>
+    <div class="cta-note">$cta_note</div>
   </div>
 
   <section>
     <div class="sec-title"><span class="bar"></span>怎么在手机上打开</div>
     <ol class="steps">
-      <li>在<b>手机浏览器</b>（Safari / Chrome）中打开本页；微信内请先用「在浏览器中打开」。</li>
-      <li>点击上方按钮，<b>高德地图 App 会自动弹出</b>并生成行程路线图。</li>
-      <li>若没有反应，复制下面的链接，粘贴到手机浏览器地址栏打开。</li>
+$steps
     </ol>
   </section>
 
   <section>
     <div class="sec-title"><span class="bar"></span>行程链接（备用）</div>
     <div class="copy-card">
-      <div class="link-box" id="linkBox">$amap_uri_text</div>
+      <div class="link-box" id="linkBox">$map_uri_text</div>
       <button class="btn-copy" id="btnCopy" type="button">复制</button>
     </div>
   </section>
@@ -213,6 +218,31 @@ $tips_block
 
 TAG_COLORS = {"weather": "w", "spots": "p", "food": "f", "tickets": "m", "tips": "t"}
 TAG_LABELS = {"weather": "天气", "spots": "景点", "food": "美食", "tickets": "门票", "tips": "贴士"}
+
+MAP_TEXT = {
+    "amap": {
+        "wechat_tip": "微信内可能无法直接跳转高德：请先点右上角「···」→ 选择「在浏览器中打开」，再点下方按钮。",
+        "cta_title": "在高德地图中打开行程",
+        "cta_sub": "自动唤起已安装的高德地图 App",
+        "cta_note": "手机需已安装「高德地图」App",
+        "steps": [
+            "在<b>手机浏览器</b>（Safari / Chrome）中打开本页；微信内请先用「在浏览器中打开」。",
+            "点击上方按钮，<b>高德地图 App 会自动弹出</b>并生成行程路线图。",
+            "若没有反应，复制下面的链接，粘贴到手机浏览器地址栏打开。",
+        ],
+    },
+    "google": {
+        "wechat_tip": "Google 地图在国内网络下可能无法打开：出发前请在 Google 地图 App 中下载目的地离线区域，或备用 Organic Maps；微信内请先点右上角「···」→「在浏览器中打开」。",
+        "cta_title": "在 Google 地图中打开行程",
+        "cta_sub": "已安装 App 时自动唤起，否则在浏览器中打开",
+        "cta_note": "建议安装「Google Maps」App 并提前下载离线地图",
+        "steps": [
+            "在<b>手机浏览器</b>（Safari / Chrome）中打开本页；微信内请先用「在浏览器中打开」。",
+            "点击上方按钮查看<b>全程总览</b>；逐站路书中的「地图」链接是当天的路线。",
+            "若没有反应，复制下面的链接，粘贴到手机浏览器地址栏打开。",
+        ],
+    },
+}
 STAGE_COLORS = {"blue": "var(--deep)", "green": "var(--green)", "orange": "var(--orange)"}
 
 
@@ -241,6 +271,11 @@ def render_stop(stop, color):
         if val:
             rows.append('<div class="d"><span class="tag %s">%s</span><span>%s</span></div>'
                         % (TAG_COLORS[key], TAG_LABELS[key], esc(val)))
+    url = stop.get("map_url", "")
+    if url.startswith("https://"):
+        rows.append('<div class="d"><span class="tag g">地图</span><span>'
+                    '<a href="%s" target="_blank" rel="noopener">%s</a></span></div>'
+                    % (esc(url), esc(stop.get("map_label", "打开当日路线"))))
     km = '<span class="km">%s</span>' % esc(stop["km"]) if stop.get("km") else ""
     return (
         '      <div class="t">%s<br>%s</div><div class="axis"><div class="dot %s"></div></div>\n'
@@ -311,7 +346,17 @@ def main():
     else:
         out_path = os.path.splitext(json_path)[0] + ".html"
 
+    gmaps = d.get("gmaps_url", "")
     amap = d.get("amap_uri", "")
+    if gmaps and amap:
+        print("amap_uri 与 gmaps_url 只能填一个", file=sys.stderr)
+        sys.exit(2)
+    if gmaps and not gmaps.startswith("https://"):
+        print("gmaps_url 必须是 https 链接", file=sys.stderr)
+        sys.exit(2)
+    provider = "google" if gmaps else "amap"
+    map_uri = gmaps or amap
+    text = MAP_TEXT[provider]
     h1 = "<br>".join(esc(x) for x in d["title_lines"]) if d.get("title_lines") else esc(d.get("title", "旅行路书"))
     page = PAGE.substitute(
         title=esc(d.get("title", "旅行路书")),
@@ -320,8 +365,14 @@ def main():
         eyebrow=esc(d.get("eyebrow", "旅行路书")),
         h1=h1,
         subtitle=esc(d.get("subtitle", "")),
-        amap_uri=esc(amap),
-        amap_uri_text=esc(amap),
+        wechat_tip=esc(text["wechat_tip"]),
+        cta_title=esc(text["cta_title"]),
+        cta_sub=esc(text["cta_sub"]),
+        cta_note=esc(text["cta_note"]),
+        steps="\n".join("      <li>%s</li>" % li for li in text["steps"]),
+        map_uri=esc(map_uri),
+        map_target=' target="_blank" rel="noopener"' if provider == "google" else "",
+        map_uri_text=esc(map_uri),
         weather_block=render_weather(d.get("weather", []), d.get("weather_note", "")),
         stages_block=render_stages(d.get("stages", [])),
         tickets_block=render_tickets(d.get("tickets", []), d.get("tickets_total", ""), d.get("budget_note", "")),
