@@ -183,6 +183,35 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertNotIn('class="upd"', page)
 
+    def test_new_modules(self):
+        d = self.data(
+            tags=["主申请国：意大利"],
+            flights=[{"date": "4/12", "no": "CA939", "from": "北京首都 T3", "to": "罗马 FCO", "dep": "01:40",
+                      "arr": "07:05", "note": "凌晨航班前一晚出门"}],
+            bookings=[{"item": "斗兽场", "on_sale": "2026-03-14T09:00:00+01:00", "url": "https://colosseo.it/"},
+                      {"item": "梵蒂冈博物馆", "on_sale": "2026-02-12T23:30:00+01:00", "visit": "4/13"}],
+            stays=[{"city": "罗马", "name": "Hotel Artemide", "status": "booked", "dates": "4/12–4/15"}],
+            gear=[{"group": "相机", "items": "24-70mm"}],
+            tips=["保管好护照"])
+        r, page = self.build(d)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("<span>主申请国：意大利</span>", page)
+        self.assertIn("<b>01:40</b><span>北京首都 T3</span>", page)
+        self.assertLess(page.index("梵蒂冈博物馆"), page.index("斗兽场"))
+        self.assertIn('<div class="cal"><span>2月</span><b>12</b><span>周四</span></div>', page)
+        self.assertIn("北京时间 <b>02-13 06:30</b>", page)
+        self.assertIn("北京时间 <b>16:00</b>", page)
+        self.assertIn('class="st booked">已订', page)
+        self.assertIn("拍摄与记录设备", page)
+        self.assertIn('<nav class="nav" id="nav">', page)
+        self.assertIn('<a href="#bookings">抢票</a>', page)
+
+    def test_on_sale_needs_timezone(self):
+        self.assertRejected(self.data(bookings=[{"item": "x", "on_sale": "2026-03-14 09:00"}]),
+                            "bookings[0].on_sale 需为带时区的 ISO 8601")
+        self.assertRejected(self.data(stays=[{"city": "罗马", "name": "x", "status": "maybe"}]),
+                            "booked / first / backup")
+
     def test_underscore_fields_are_comments(self):
         r, _ = self.build(self.data(_comment="替换为说明，不渲染"))
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -340,6 +369,37 @@ def importable(name):
         return False
 
 
+BAD_SCRIPT_PAGE = """<html><head><title>t</title></head><body>
+<script type="application/json">{"city": "Venezia", }</script>
+<script>var stops = ['Wombat's City Hostel'];</script>
+</body></html>
+"""
+
+
+@unittest.skipUnless(shutil.which("node"), "未安装 node")
+class ScriptCheckTest(unittest.TestCase):
+    def test_apostrophe_and_json_caught(self):
+        tmp = tmpdir(self)
+        bad = os.path.join(tmp, "bad.html")
+        with open(bad, "w", encoding="utf-8") as f:
+            f.write(BAD_SCRIPT_PAGE)
+        r = run([sys.executable, os.path.join(SCRIPTS, "check_page.py"), bad, "--js-only"])
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("撇号", r.stdout)
+        self.assertIn("JSON 数据块", r.stdout)
+        e = dict(os.environ, DRY_RUN="1")
+        r = run(["bash", DEPLOY, "cloudflare", bad, "demo"], env=e)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("已停止发布", r.stderr)
+
+    def test_built_page_passes(self):
+        tmp = tmpdir(self)
+        out = os.path.join(tmp, "p.html")
+        run([sys.executable, BUILD, SAMPLES[1], out, "--allow-placeholders"])
+        r = run([sys.executable, os.path.join(SCRIPTS, "check_page.py"), out, "--js-only"])
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+
 class ToolsTest(unittest.TestCase):
     def test_make_qr_args(self):
         r = run([sys.executable, os.path.join(SCRIPTS, "make_qr.py")])
@@ -367,6 +427,7 @@ class ToolsTest(unittest.TestCase):
         with zipfile.ZipFile(out) as z:
             names = z.namelist()
         for must in ("travel-roadbook/SKILL.md", "travel-roadbook/references/domestic.md",
+                     "travel-roadbook/references/iteration.md",
                      "travel-roadbook/scripts/build_roadbook.py", "travel-roadbook/assets/roadbook.sample.json"):
             self.assertIn(must, names)
         self.assertFalse([n for n in names if "__pycache__" in n or n.endswith(".pyc")])

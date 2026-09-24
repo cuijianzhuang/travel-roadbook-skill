@@ -32,14 +32,15 @@ travel-roadbook/                    # 技能本体（上传/安装的就是这�
 │   ├── domestic.md                 # 国内分支：高德工具链、校验规则、页面模块
 │   ├── europe.md                   # 欧洲 / 境外分支：Google Maps 接入、火车、签证、预约
 │   ├── live-data.md                # 实时数据：模式选择、页面数据库、每日定时任务
+│   ├── iteration.md                # 迭代补充：航班截图、住宿、美食、拍摄设备、完成度检查
 │   └── scripts.md                  # 附带脚本用法与路书 JSON 字段
 ├── assets/
 │   ├── roadbook.sample.json        # 路书数据模板（国内 · 高德）
 │   └── roadbook.google.sample.json # 路书数据模板（国外 · Google Maps）
 └── scripts/
     ├── build_roadbook.py           # JSON → 静态路书 HTML（先校验字段与占位内容）
-    ├── check_page.py               # 页面自检：手机宽度、深浅色、链接、截图（需 Playwright）
-    ├── deploy.sh                   # 发布到 Cloudflare Pages / Vercel，并核对线上页面
+    ├── check_page.py               # 页面自检：node --check 脚本语法；手机宽度、深浅色、链接、截图（需 Playwright）
+    ├── deploy.sh                   # 发布到 Cloudflare Pages / Vercel：发布前查脚本，发布后核对线上页面
     └── make_qr.py                  # 发布链接 → 二维码 PNG
 tools/package.py                    # 打包 travel-roadbook/ 为上传用 zip
 tests/                              # 脚本回归测试
