@@ -27,7 +27,12 @@
 
 ```
 travel-roadbook/
-└── SKILL.md   # 技能入口：分流、通用流程、国内/欧洲分支规则、实时数据方案
+├── SKILL.md                    # 技能入口：分流、通用流程、国内/欧洲分支规则、实时数据方案、附带脚本
+├── references/                 # 上游参考文档：高德工具、规划规则、路书规范
+├── assets/roadbook.sample.json # 路书数据模板
+└── scripts/
+    ├── build_roadbook.py       # JSON → 静态路书 HTML（国内分支）
+    └── make_qr.py              # 发布链接 → 二维码 PNG
 ```
 
 ## 安装
