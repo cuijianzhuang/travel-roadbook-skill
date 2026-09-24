@@ -69,7 +69,7 @@
      - 模式 A：用 ArtifactData batch 更新 `live/weather`、`live/fx`、`live/alerts`、`live/meta`（写 `lastRun`、`lastStatus`）。
      - 模式 B（Artifact）：读取 Artifact 当前页面，只替换内嵌数据块与更新时间后原链接重新发布，不改其他内容。
      - 模式 B（Cloudflare / Vercel）：写明仓库、JSON 路径、平台与项目名；只改 JSON 中的 `weather`、`alerts`、`updated_at` → `build_roadbook.py`（校验不过就按报错修 JSON）→ `deploy.sh <平台> <html> <项目名>` → 提交 JSON 改动。deploy.sh 发布后会比对线上页面标题，退出码非 0 按失败处理。
-  5. **推送条件**：新增 `severe` 预警、行程日天气出现暴雨/暴雪/高温红色等，或连续 2 天更新失败时，用 SendUserMessage 简短告诉用户；否则静默。
+  5. **推送条件**：新增 `severe` 预警、行程日天气出现暴雨/暴雪/高温红色等、抢票日历里有项目在未来 24 小时内开售（写明项目、当地与北京时间、官网链接），或连续 2 天更新失败时，用 SendUserMessage 简短告诉用户；否则静默。prompt 里要附上抢票日历（项目 · 开售时间 · 官网）。
   6. **自行停用**：当前日期晚于 `tripEnd` 时，用 list_triggers 找到本任务并 update_trigger 设 `enabled:false`，然后结束。
 - **地图工具必须是连接器**：高德 / Google Maps 必须是用户在 claude.ai 添加的连接器，定时任务的新会话才能用；否则任务改用 WebSearch 查天气并在 `source` 注明。
 - 任务建好后告诉用户：运行时间、截止日、需要“自动批准”才能无人值守写数据。

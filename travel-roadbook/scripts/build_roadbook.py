@@ -6,8 +6,9 @@ build_roadbook.py — 旅行路书网页构建器
 用法:
     python3 build_roadbook.py roadbook.json [输出.html] [--allow-placeholders]
 
-读取一份结构化路书 JSON，渲染成自包含的手机端 HTML（含地图打开按钮、出行提醒、
-天气速览、逐站路书、当地美食、门票花费、穿着建议、注意事项），自动适配深色模式。
+读取一份结构化路书 JSON，渲染成自包含的手机端 HTML（含地图打开按钮、封面标签、航班、
+抢票日历、出行提醒、天气速览、逐站路书、当地美食、住宿、门票花费、穿着建议、拍摄设备、
+注意事项），自动适配深色模式。
 不传输出路径时，输出到与 JSON 同目录、同名的 .html。
 
 构建前先校验 JSON，不通过就报错退出（退出码 2）并列出字段路径：
@@ -30,7 +31,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from string import Template
 
 CSS = r"""
@@ -44,8 +45,9 @@ CSS = r"""
     --orange-text:#c2410c; --orange-soft:#fdf3ea; --orange-line:#f2c7a3; --orange-ink:#8a3b0e;
     --blue-text:#0b57d0; --blue-soft:#eaf2fe; --blue-line:#c6dafc; --blue-press:#d6e6fd;
     --red-soft:#fdecec;
-    --toast-bg:rgba(23,32,43,.92); --toast-ink:#ffffff; --shadow:rgba(23,32,43,.04);
-    --radius:10px;
+    --toast-bg:rgba(23,32,43,.92); --toast-ink:#ffffff; --shadow:rgba(23,32,43,.06);
+    --purple-text:#6d28d9; --purple-soft:#f1ebfe; --hero1:#17365d; --hero2:#2a5d93;
+    --radius:12px;
   }
   @media (prefers-color-scheme:dark){
     :root{
@@ -56,44 +58,52 @@ CSS = r"""
       --orange-text:#f4a26b; --orange-soft:#33231a; --orange-line:#6b4128; --orange-ink:#f5c9a6;
       --blue-text:#8ab4f8; --blue-soft:#1a2940; --blue-line:#2c4a73; --blue-press:#22385a;
       --red-soft:#3a1e1f;
-      --toast-bg:rgba(230,235,241,.95); --toast-ink:#17202b; --shadow:rgba(0,0,0,.3);
+      --toast-bg:rgba(230,235,241,.95); --toast-ink:#17202b; --shadow:rgba(0,0,0,.35);
+      --purple-text:#c4b5fd; --purple-soft:#2a2140; --hero1:#132a47; --hero2:#24507f;
     }
   }
   [hidden]{display:none!important;}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html{font-size:16px;}
+  html{font-size:16px;scroll-behavior:smooth;}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
     background:var(--bg); color:var(--ink);
     line-height:1.55; -webkit-font-smoothing:antialiased;
   }
   .wrap{max-width:560px;margin:0 auto;padding:20px 16px calc(28px + env(safe-area-inset-bottom));}
-  header{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--sub);}
+  .hero{
+    margin-top:4px;padding:18px 18px 20px;border-radius:20px;color:#fff;
+    background:linear-gradient(150deg,var(--hero1) 0%,var(--hero2) 100%);
+    box-shadow:0 10px 28px -12px rgba(23,54,93,.55);
+  }
+  header{display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,.88);}
   header svg{flex:none;}
-  .logo .pin{fill:var(--accent);}
-  h1{font-size:25px;line-height:1.3;margin:14px 0 6px;letter-spacing:.01em;}
-  .lead{color:var(--sub);font-size:15px;}
-  .lead b{color:var(--ink);font-weight:600;}
+  .logo .pin{fill:#fff;}
+  h1{font-size:24px;line-height:1.28;margin:12px 0 6px;letter-spacing:.01em;}
+  .lead{color:rgba(255,255,255,.88);font-size:14.5px;}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  .tags span{font-size:12px;font-weight:600;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);border-radius:999px;padding:2px 10px;}
   .wechat-tip{
-    margin:16px 0 14px;padding:10px 12px;border:1px solid var(--orange-line);background:var(--orange-soft);
+    margin-bottom:12px;padding:10px 12px;border:1px solid var(--orange-line);background:var(--orange-soft);
     border-radius:var(--radius);font-size:13.5px;color:var(--orange-ink);
   }
-  .cta-card{
-    background:var(--card);border:1px solid var(--line);border-radius:14px;
-    padding:18px 16px;box-shadow:0 1px 2px var(--shadow);
-  }
-  .lead + .cta-card,.wechat-tip[hidden] + .cta-card{margin-top:18px;}
   .btn-open{
-    display:block;width:100%;text-align:center;text-decoration:none;
-    background:var(--deep);color:#fff;font-size:18px;font-weight:600;
-    padding:16px 12px;border-radius:var(--radius);
-    box-shadow:0 3px 0 var(--deep2);
+    display:block;width:100%;margin-top:18px;text-align:center;text-decoration:none;
+    background:#fff;color:#17365d;font-size:17px;font-weight:700;
+    padding:14px 12px;border-radius:14px;box-shadow:0 3px 0 rgba(0,0,0,.18);
   }
-  .btn-open:active{transform:translateY(2px);box-shadow:0 1px 0 var(--deep2);}
-  .btn-open .sub{display:block;font-size:12.5px;font-weight:400;opacity:.85;margin-top:3px;}
-  .cta-note{font-size:13px;color:var(--sub);text-align:center;margin-top:10px;}
-  section{margin-top:26px;}
-  .sec-title{font-size:15px;font-weight:600;margin-bottom:10px;display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;}
+  .btn-open:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.18);}
+  .btn-open .sub{display:block;font-size:12.5px;font-weight:400;color:#46505c;margin-top:2px;}
+  .cta-note{font-size:12.5px;color:rgba(255,255,255,.82);text-align:center;margin-top:10px;}
+  .nav{
+    position:sticky;top:0;z-index:5;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;
+    margin:14px -16px 0;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--line);
+  }
+  .nav::-webkit-scrollbar{display:none;}
+  .nav a{flex:none;font-size:13px;font-weight:600;color:var(--sub);text-decoration:none;padding:5px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line);}
+  .nav a.on{color:#fff;background:var(--deep);border-color:var(--deep);}
+  section{margin-top:26px;scroll-margin-top:60px;}
+  .sec-title{font-size:16px;font-weight:600;margin-bottom:10px;display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;}
   .sec-title .bar{flex:none;width:4px;height:16px;border-radius:2px;background:var(--deep);display:inline-block;}
   .upd{margin-left:auto;font-size:12px;font-weight:400;color:var(--muted);white-space:nowrap;}
   .upd.stale{color:var(--orange-text);font-weight:600;}
@@ -149,7 +159,7 @@ CSS = r"""
   .kind.forecast{color:var(--blue-text);background:var(--blue-soft);}
   .kind.climate{color:var(--sub);background:var(--head);}
   .wk .t{margin-top:2px;font-size:13.5px;color:var(--sub);}
-  .wk .t b{color:var(--ink);font-size:15px;}
+  .wk .t b{color:var(--ink);font-size:19px;letter-spacing:-.01em;}
   .wk .sun{margin-top:2px;font-size:12px;color:var(--sub);}
   .src-note{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6;}
   .tl{display:grid;grid-template-columns:58px 22px minmax(0,1fr);column-gap:0;position:relative;}
@@ -193,6 +203,41 @@ CSS = r"""
   .shop .sn{font-size:13.5px;font-weight:600;}
   .shop .sm{font-size:12px;color:var(--sub);margin-top:1px;line-height:1.45;}
   .shop .map-btn{flex:none;}
+  .flt{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
+  .flt .fh{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--sub);}
+  .flt .fh b{font-size:14px;color:var(--ink);letter-spacing:.03em;}
+  .leg{display:grid;grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr);align-items:center;margin-top:6px;}
+  .leg .end b{display:block;font-size:22px;line-height:1.2;color:var(--ink);letter-spacing:-.01em;}
+  .leg .end span{display:block;font-size:12.5px;color:var(--sub);overflow-wrap:anywhere;}
+  .leg .end.r{text-align:right;}
+  .leg .line{position:relative;height:20px;color:var(--accent);}
+  .leg .line::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1.5px dashed var(--muted);opacity:.55;}
+  .leg .line svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--card);padding:0 3px;}
+  .flt .fn{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--orange-text);}
+  .bk{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:8px;}
+  .cal{flex:none;width:54px;padding:5px 0 6px;border-radius:10px;text-align:center;color:var(--purple-text);background:var(--purple-soft);}
+  .cal span{display:block;font-size:11px;font-weight:600;line-height:1.4;}
+  .cal b{display:block;font-size:22px;line-height:1.15;}
+  .bk .bd{flex:1;min-width:0;}
+  .bk .item{font-size:15px;font-weight:600;overflow-wrap:anywhere;}
+  .bk .item small{margin-left:6px;font-size:12px;font-weight:400;color:var(--sub);}
+  .bk .when{margin-top:2px;font-size:12.5px;color:var(--sub);}
+  .bk .when b{color:var(--ink);}
+  .bk .rule{margin-top:2px;font-size:12.5px;color:var(--text2);}
+  .bk .src-link{display:inline-block;margin-top:4px;font-size:12.5px;font-weight:600;color:var(--blue-text);text-decoration:none;}
+  .sale{display:inline-block;margin-left:6px;vertical-align:2px;padding:0 5px;border-radius:3px;font-size:11px;font-weight:600;line-height:1.6;color:var(--blue-text);background:var(--blue-soft);}
+  .sale:empty{display:none;}
+  .sale.soon{color:#fff;background:var(--orange);}
+  .sale.open{color:var(--sub);background:var(--head);}
+  .stay{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;}
+  .stay .info{flex:1;min-width:0;}
+  .stay .sh{font-size:12.5px;color:var(--sub);}
+  .stay .sn{margin-top:1px;font-size:14.5px;font-weight:600;overflow-wrap:anywhere;}
+  .stay .sm{margin-top:1px;font-size:12.5px;color:var(--text2);line-height:1.45;}
+  .stay .map-btn{flex:none;}
+  .st{display:inline-block;margin-left:6px;padding:0 5px;border-radius:3px;font-size:11px;font-weight:600;line-height:1.6;color:#fff;background:var(--slate);}
+  .st.booked{background:var(--green);} .st.first{background:var(--blue);}
+  .wk,.flt,.bk,.stay,.dish,.cloth,.tips,.alert,.alert-empty,.copy-card,table.tk{box-shadow:0 1px 3px var(--shadow);}
   .cloth{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
   .cloth .g{font-size:14px;font-weight:600;margin-bottom:3px;}
   .cloth .g .ic{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--deep);margin-right:7px;}
@@ -243,6 +288,29 @@ JS = r"""
     document.addEventListener('visibilitychange',function(){if(document.hidden)clearTimeout(pending);});
     window.addEventListener('pagehide',function(){clearTimeout(pending);});
   }
+  // 顶部导航：高亮当前所在模块，并把它滚到可见处
+  var nav=document.getElementById('nav');
+  if(nav&&'IntersectionObserver' in window){
+    var links=[].slice.call(nav.querySelectorAll('a'));
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(!e.isIntersecting)return;
+        links.forEach(function(a){
+          var on=a.getAttribute('href')==='#'+e.target.id;
+          a.classList.toggle('on',on);
+          if(on)nav.scrollLeft=a.offsetLeft-nav.clientWidth/2+a.offsetWidth/2;
+        });
+      });
+    },{rootMargin:'-40% 0px -55% 0px'});
+    links.forEach(function(a){var t=document.getElementById(a.getAttribute('href').slice(1));if(t)io.observe(t);});
+  }
+  // 抢票日历：距开售还有几天
+  [].forEach.call(document.querySelectorAll('.sale[data-ts]'),function(el){
+    var d=(Number(el.getAttribute('data-ts'))-Date.now())/864e5;
+    if(d<=0){el.textContent='已开售';el.classList.add('open');}
+    else if(d<1){el.textContent='24 小时内开售';el.classList.add('soon');}
+    else{el.textContent='还有 '+Math.floor(d)+' 天';if(d<3)el.classList.add('soon');}
+  });
   // 实时数据超过 36 小时未更新，提示可能过期
   var now=Date.now();
   [].forEach.call(document.querySelectorAll('.upd[data-ts]'),function(el){
@@ -271,27 +339,28 @@ PAGE = Template(r"""<!DOCTYPE html>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <svg class="logo" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-      <path class="pin" d="M12 2C7.6 2 4 5.5 4 9.8 4 15.2 11.2 21.6 11.6 22c.2.2.6.2.8 0 .4-.4 7.6-6.8 7.6-12.2C20 5.5 16.4 2 12 2z"/>
-      <circle cx="12" cy="9.8" r="2.8" fill="#ea580c"/>
-    </svg>
-    $eyebrow
-  </header>
-
-  <h1>$h1</h1>
-  <p class="lead">$subtitle</p>
 $wechat_block
-  <div class="cta-card">
+  <div class="hero">
+    <header>
+      <svg class="logo" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <path class="pin" d="M12 2C7.6 2 4 5.5 4 9.8 4 15.2 11.2 21.6 11.6 22c.2.2.6.2.8 0 .4-.4 7.6-6.8 7.6-12.2C20 5.5 16.4 2 12 2z"/>
+        <circle cx="12" cy="9.8" r="2.8" fill="#ea580c"/>
+      </svg>
+      $eyebrow
+    </header>
+    <h1>$h1</h1>
+    <p class="lead">$subtitle</p>$tags_block
     <a class="btn-open" id="btnOpen" href="$map_uri"$map_target>
       $cta_title$cta_sub_block
     </a>$cta_note_block
   </div>
-$steps_block$backup_block$alerts_block$weather_block
+$nav_block$steps_block$backup_block$flights_block$bookings_block$alerts_block$weather_block
 $stages_block
 $food_block
+$stays_block
 $tickets_block
 $clothing_block
+$gear_block
 $tips_block
   <footer>$footer</footer>
 </div>
@@ -307,6 +376,9 @@ KIND_LABELS = {"forecast": "预报", "climate": "气候参考"}
 ALERT_LEVELS = (("severe", "严重"), ("warn", "注意"), ("info", "提示"))  # 按严重程度排序
 LEVEL_LABELS = dict(ALERT_LEVELS)
 LEVEL_RANK = dict((k, i) for i, (k, _) in enumerate(ALERT_LEVELS))
+STAY_LABELS = {"booked": "已订", "first": "首选", "backup": "备选"}
+WEEKDAYS = "一二三四五六日"
+BEIJING = timezone(timedelta(hours=8))
 
 MAP_TEXT = {
     "amap": {
@@ -329,6 +401,9 @@ MAP_TEXT = {
         "steps": [],
     },
 }
+
+PLANE_SVG = ('<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 16v-2l-8-5V3.5'
+             'a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" transform="rotate(90 12 12)"/></svg>')
 
 PIN_SVG = ('<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.5 4 9.8 '
            '4 15.2 11.2 21.6 11.6 22c.2.2.6.2.8 0 .4-.4 7.6-6.8 7.6-12.2C20 5.5 16.4 2 12 2zm0 10.6a2.8 2.8 0 1 1 '
@@ -358,8 +433,13 @@ STOP = Obj({"date": TEXT, "time": TEXT, "name": TEXT, "km": TEXT, "weather": TEX
 SHOP = Obj({"name": TEXT, "note": TEXT, "map_url": HTTPS}, ["name"])
 DISH = Obj({"name": TEXT, "tags": [TEXT], "desc": TEXT, "shops": [SHOP]}, ["name"])
 SCHEMA = Obj({
-    "title": TEXT, "eyebrow": TEXT, "title_lines": [TEXT], "subtitle": TEXT,
+    "title": TEXT, "eyebrow": TEXT, "title_lines": [TEXT], "subtitle": TEXT, "tags": [TEXT],
     "amap_uri": TEXT, "gmaps_url": HTTPS,
+    "flights": [Obj({"date": TEXT, "no": TEXT, "from": TEXT, "to": TEXT, "dep": TEXT, "arr": TEXT, "note": TEXT},
+                    ["date", "no"])],
+    "flights_note": TEXT,
+    "bookings": [Obj({"item": TEXT, "on_sale": TEXT, "visit": TEXT, "rule": TEXT, "url": HTTPS}, ["item", "on_sale"])],
+    "bookings_note": TEXT,
     "updated_at": TEXT,
     "alerts": [Obj({"level": Enum(*LEVEL_LABELS), "date": TEXT, "city": TEXT, "text": TEXT, "url": HTTPS},
                    ["text"])],
@@ -369,10 +449,14 @@ SCHEMA = Obj({
     "stages": [Obj({"name": TEXT, "color": Enum("blue", "green", "orange"), "stops": [STOP]}, ["name"])],
     "food": [Obj({"city": TEXT, "items": [DISH]}, ["city"])],
     "food_note": TEXT,
+    "stays": [Obj({"city": TEXT, "dates": TEXT, "name": TEXT, "status": Enum(*STAY_LABELS), "price": TEXT,
+                   "note": TEXT, "map_url": HTTPS}, ["city", "name"])],
+    "stays_note": TEXT,
     "tickets": [Obj({"name": TEXT, "price": TEXT, "book": TEXT}, ["name"])],
     "tickets_total": TEXT,
     "budget_note": TEXT,
     "clothing": [Obj({"group": TEXT, "items": TEXT}, ["group", "items"])],
+    "gear": [Obj({"group": TEXT, "items": TEXT}, ["group", "items"])],
     "tips": [TEXT],
     "footer": TEXT,
 })
@@ -455,15 +539,19 @@ def find_placeholders(value, path="", found=None):
     return found
 
 
-def parse_updated(text):
-    """带时区的 ISO 8601 → (毫秒时间戳, "MM-DD HH:MM")；格式不对返回 None。"""
+def parse_time(text):
+    """带时区的 ISO 8601 → datetime；格式不对或没有时区返回 None。"""
     try:
         dt = datetime.fromisoformat(str(text).strip().replace("Z", "+00:00"))
     except ValueError:
         return None
-    if dt.tzinfo is None:
-        return None
-    return int(dt.timestamp() * 1000), dt.strftime("%m-%d %H:%M")
+    return dt if dt.tzinfo is not None else None
+
+
+def parse_updated(text):
+    """→ (毫秒时间戳, "MM-DD HH:MM")；格式不对返回 None。"""
+    dt = parse_time(text)
+    return (int(dt.timestamp() * 1000), dt.strftime("%m-%d %H:%M")) if dt else None
 
 
 def validate(d):
@@ -478,9 +566,13 @@ def validate(d):
         errors.append("缺少地图链接：国内填 amap_uri（amapuri://…），国外填 gmaps_url（https://…）")
     if has(amap) and not str(amap).startswith("amapuri://"):
         errors.append("amap_uri 必须是 maps_schema_personal_map 返回的 amapuri:// 链接，当前为 %s" % amap)
-    updated = d.get("updated_at")
-    if has(updated) and parse_updated(updated) is None and not placeholder_label(str(updated)):
-        errors.append("updated_at 需为带时区的 ISO 8601 时间，如 2026-09-24T07:00:00+08:00，当前为 %s" % updated)
+    times = [("updated_at", d.get("updated_at"))]
+    if isinstance(d.get("bookings"), list):
+        times += [("bookings[%d].on_sale" % i, b.get("on_sale"))
+                  for i, b in enumerate(d["bookings"]) if isinstance(b, dict)]
+    for path, value in times:
+        if has(value) and parse_time(value) is None and not placeholder_label(str(value)):
+            errors.append("%s 需为带时区的 ISO 8601 时间，如 2026-09-24T07:00:00+08:00，当前为 %s" % (path, value))
     return errors
 
 
@@ -490,9 +582,26 @@ def esc(v):
     return html.escape(str(v), quote=True)
 
 
+# 模块标题 → (锚点 id, 顶部导航文字)
+SECTIONS = {
+    "航班": ("flights", "航班"), "抢票日历": ("bookings", "抢票"), "出行提醒": ("alerts", "提醒"),
+    "沿途天气速览": ("weather", "天气"), "逐站路书": ("route", "路书"), "当地美食推荐": ("food", "美食"),
+    "住宿": ("stays", "住宿"), "门票与花费参考": ("tickets", "门票"), "穿着建议": ("clothing", "穿着"),
+    "拍摄与记录设备": ("gear", "设备"), "注意事项": ("tips", "贴士"),
+}
+
+
 def section(title, body, extra=""):
-    return ('\n  <section>\n    <div class="sec-title"><span class="bar"></span>%s%s</div>\n%s\n  </section>'
-            % (title, extra, body))
+    sid = ' id="%s"' % SECTIONS[title][0] if title in SECTIONS else ""
+    return ('\n  <section%s>\n    <div class="sec-title"><span class="bar"></span>%s%s</div>\n%s\n  </section>'
+            % (sid, title, extra, body))
+
+
+def render_nav(blocks):
+    """页面有 3 个以上可跳转模块时，生成吸顶的模块导航。"""
+    links = ['<a href="#%s">%s</a>' % SECTIONS[t] for t in SECTIONS
+             if any('<section id="%s">' % SECTIONS[t][0] in b for b in blocks)]
+    return '  <nav class="nav" id="nav">%s</nav>' % "".join(links) if len(links) >= 3 else ""
 
 
 def render_stamp(updated):
@@ -616,12 +725,81 @@ def render_tickets(tickets, total, note):
     return section("门票与花费参考", body)
 
 
-def render_clothing(clothing):
-    if not clothing:
+def render_cards(title, cards):
+    if not cards:
         return ""
-    cards = "".join('<div class="cloth"><div class="g"><span class="ic"></span>%s</div><div class="it">%s</div></div>'
-                    % (esc(c["group"]), esc(c["items"])) for c in clothing)
-    return section("穿着建议", cards)
+    body = "".join('<div class="cloth"><div class="g"><span class="ic"></span>%s</div><div class="it">%s</div></div>'
+                   % (esc(c["group"]), esc(c["items"])) for c in cards)
+    return section(title, body)
+
+
+def render_tags(tags):
+    if not tags:
+        return ""
+    return '\n    <div class="tags">%s</div>' % "".join("<span>%s</span>" % esc(t) for t in tags)
+
+
+def note_html(note):
+    return '<div class="src-note">%s</div>' % esc(note) if note else ""
+
+
+def render_flights(flights, note):
+    if not flights:
+        return ""
+    def end(place, time, cls):
+        return '<div class="end%s"><b>%s</b><span>%s</span></div>' % (
+            cls, esc(time) if has(time) else "—", esc(place) if has(place) else "")
+    rows = []
+    for f in flights:
+        rows.append('    <div class="flt"><div class="fh"><span>%s</span><b>%s</b></div>'
+                    '<div class="leg">%s<div class="line">%s</div>%s</div>%s</div>'
+                    % (esc(f["date"]), esc(f["no"]), end(f.get("from"), f.get("dep"), ""), PLANE_SVG,
+                       end(f.get("to"), f.get("arr"), " r"),
+                       '<div class="fn">%s</div>' % esc(f["note"]) if has(f.get("note")) else ""))
+    return section("航班", "\n".join(rows) + note_html(note))
+
+
+def sale_time(text):
+    """开售时间 → (排序键, 日历牌, 时间说明, 毫秒时间戳或 None)。非 +08:00 时区另附北京时间。"""
+    dt = parse_time(text)
+    if not dt:
+        return (1, 0), '<div class="cal"><span>开售</span><b>?</b><span>待查</span></div>', esc(text), None
+    cal = '<div class="cal"><span>%d月</span><b>%d</b><span>周%s</span></div>' % (dt.month, dt.day, WEEKDAYS[dt.weekday()])
+    when = "%d 年 · <b>%s</b>" % (dt.year, dt.strftime("%H:%M"))
+    if dt.utcoffset() != timedelta(hours=8):
+        bj = dt.astimezone(BEIJING)
+        when += " 当地 · 北京时间 <b>%s</b>" % bj.strftime("%H:%M" if bj.date() == dt.date() else "%m-%d %H:%M")
+    ms = int(dt.timestamp() * 1000)
+    return (0, ms), cal, when, ms
+
+
+def render_bookings(bookings, note):
+    if not bookings:
+        return ""
+    rows = []
+    for key, cal, when, ms, b in sorted((sale_time(b["on_sale"]) + (b,) for b in bookings), key=lambda x: x[0]):
+        rows.append('    <div class="bk">%s<div class="bd"><div class="item">%s%s%s</div><div class="when">开售 %s</div>%s%s</div></div>'
+                    % (cal, esc(b["item"]), '<span class="sale" data-ts="%d"></span>' % ms if ms else "",
+                       "<small>参观 %s</small>" % esc(b["visit"]) if has(b.get("visit")) else "", when,
+                       '<div class="rule">%s</div>' % esc(b["rule"]) if has(b.get("rule")) else "",
+                       '<a class="src-link" href="%s" target="_blank" rel="noopener">官方预约 ›</a>' % esc(b["url"])
+                       if has(b.get("url")) else ""))
+    return section("抢票日历", "\n".join(rows) + note_html(note))
+
+
+def render_stays(stays, note):
+    if not stays:
+        return ""
+    rows = []
+    for st in stays:
+        head = " · ".join(esc(st[k]) for k in ("city", "dates") if has(st.get(k)))
+        badge = '<span class="st %s">%s</span>' % (st["status"], STAY_LABELS[st["status"]]) if has(st.get("status")) else ""
+        meta = " · ".join(esc(st[k]) for k in ("price", "note") if has(st.get(k)))
+        btn = ('<a class="map-btn" href="%s" target="_blank" rel="noopener">%s<span>导航</span></a>'
+               % (esc(st["map_url"]), PIN_SVG)) if has(st.get("map_url")) else ""
+        rows.append('    <div class="stay"><div class="info"><div class="sh">%s%s</div><div class="sn">%s</div>%s</div>%s</div>'
+                    % (head, badge, esc(st["name"]), '<div class="sm">%s</div>' % meta if meta else "", btn))
+    return section("住宿", "\n".join(rows) + note_html(note))
 
 
 def render_tips(tips):
@@ -650,7 +828,21 @@ def render_page(d):
                          '    </div>' % (esc(map_uri), esc(map_uri)))
     title = d.get("title") or "旅行路书"
     h1 = "<br>".join(esc(x) for x in d["title_lines"]) if d.get("title_lines") else esc(title)
+    blocks = dict(
+        flights_block=render_flights(d.get("flights", []), d.get("flights_note", "")),
+        bookings_block=render_bookings(d.get("bookings", []), d.get("bookings_note", "")),
+        alerts_block=render_alerts(d.get("alerts"), updated),
+        weather_block=render_weather(d.get("weather", []), d.get("weather_note", ""), updated),
+        stages_block=render_stages(d.get("stages", [])),
+        food_block=render_food(d.get("food", []), d.get("food_note", "")),
+        stays_block=render_stays(d.get("stays", []), d.get("stays_note", "")),
+        tickets_block=render_tickets(d.get("tickets", []), d.get("tickets_total", ""), d.get("budget_note", "")),
+        clothing_block=render_cards("穿着建议", d.get("clothing", [])),
+        gear_block=render_cards("拍摄与记录设备", d.get("gear", [])),
+        tips_block=render_tips(d.get("tips", [])),
+    )
     return PAGE.substitute(
+        nav_block=render_nav(blocks.values()),
         title=esc(title),
         description=esc(d.get("subtitle") or d.get("eyebrow") or title),
         css=CSS,
@@ -658,6 +850,7 @@ def render_page(d):
         eyebrow=esc(d.get("eyebrow") or "旅行路书"),
         h1=h1,
         subtitle=esc(d.get("subtitle", "")),
+        tags_block=render_tags(d.get("tags", [])),
         wechat_block=('  <div class="wechat-tip" id="wechatTip" hidden>%s</div>' % esc(text["wechat_tip"]))
         if text["wechat_tip"] else "",
         cta_title=esc(text["cta_title"]),
@@ -668,14 +861,8 @@ def render_page(d):
         map_uri=esc(map_uri),
         map_target=' target="_blank" rel="noopener"' if provider == "google" else "",
         backup_block=backup,
-        alerts_block=render_alerts(d.get("alerts"), updated),
-        weather_block=render_weather(d.get("weather", []), d.get("weather_note", ""), updated),
-        stages_block=render_stages(d.get("stages", [])),
-        food_block=render_food(d.get("food", []), d.get("food_note", "")),
-        tickets_block=render_tickets(d.get("tickets", []), d.get("tickets_total", ""), d.get("budget_note", "")),
-        clothing_block=render_clothing(d.get("clothing", [])),
-        tips_block=render_tips(d.get("tips", [])),
         footer=esc(d.get("footer", "")).replace("&lt;br&gt;", "<br>"),
+        **blocks
     )
 
 

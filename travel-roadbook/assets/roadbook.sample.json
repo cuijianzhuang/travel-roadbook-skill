@@ -3,8 +3,13 @@
   "eyebrow": "自驾路书 · 成都 → 稻城亚丁",
   "title_lines": ["成都 → 稻城亚丁", "6天自驾路书"],
   "subtitle": "10/1 出发 · 全程约 1700km · 去程2天 · 亚丁2天 · 返程2天",
+  "tags": ["最高海拔 4600m（牛奶海）", "国庆：假期前一天下午错峰出发", "节庆：替换为当年确切日期或删除"],
   "amap_uri": "amapuri://workInAmap/createWithToken?polymericId=REPLACE_WITH_REAL_TOKEN&from=MCP",
   "updated_at": "YYYY-MM-DDTHH:MM:00+08:00",
+  "bookings": [
+    {"item": "稻城亚丁景区", "on_sale": "YYYY-MM-DDTHH:MM:00+08:00", "visit": "10/3", "rule": "按官方小程序放票规则实查，入园日往前推算出具体放票日期", "url": "https://替换为官方预约入口"}
+  ],
+  "bookings_note": "放票规则来自景区官方渠道（YYYY-MM-DD 查询），节假日可能调整。",
   "alerts": [
     {"level": "warn", "date": "10/2", "city": "稻城", "text": "替换为已公告的恶劣天气预警、道路/景区临时关闭或限流公告；没有就写空数组 []", "url": "https://替换为公告来源链接"}
   ],
@@ -73,6 +78,11 @@
     ]}
   ],
   "food_note": "推荐店来自高德地图检索（YYYY-MM-DD 查询）；人均与营业时间以店家当日为准，节假日可能调整。",
+  "stays": [
+    {"city": "康定", "dates": "10/1 · 1 晚", "name": "替换为已订或推荐的酒店（高德 maps_text_search 实查）", "status": "booked", "price": "按预订平台实查", "note": "停车位 · 暖气 · 入住截止", "map_url": "https://uri.amap.com/marker?position=LNG,LAT&name=%E9%85%92%E5%BA%97&src=roadbook&coordinate=gaode&callnative=1"},
+    {"city": "香格里拉镇", "dates": "10/2–10/4 · 3 晚", "name": "替换为推荐的酒店", "status": "first", "price": "按预订平台实查", "note": "海拔2900m，看供氧与暖气；旺季早订"}
+  ],
+  "stays_note": "住宿信息来自预订平台（YYYY-MM-DD 查询），以订单为准。",
   "tickets": [
     {"name": "稻城亚丁景区", "price": "门票146元/人", "book": "旺季限流，提前在官方小程序实名预约"},
     {"name": "景区观光车", "price": "120元/人", "book": "必购，扎灌崩—扎灌崩往返"},

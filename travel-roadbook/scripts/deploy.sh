@@ -17,6 +17,8 @@
 #     标题不同（链接是别人的站）→ 退出码 3，改用上方输出里的链接；
 #     访问不到（多为运行环境的网络限制）→ 提示手动打开确认，退出码 0。VERIFY=0 跳过校验。
 #
+# 发布前会用 check_page.py --js-only 跑 node --check 检查页面脚本，有语法错误就不发布（退出码 1）。
+#
 # 依赖: Node.js（npx 会按需下载 wrangler / vercel CLI）、curl、python3
 # DRY_RUN=1 时只打印将执行的命令，不联网。
 set -euo pipefail
@@ -79,6 +81,10 @@ cf_lookup() {
 cf_subdomain() {
   python3 -c 'import json, sys; print(json.load(sys.stdin)["result"]["subdomain"])' < "$work/cf.json" 2>/dev/null
 }
+
+# 发布前先查页面脚本语法（撇号没转义等会让整页脚本失效）；DRY_RUN 也查，不联网
+python3 "$(dirname "$0")/check_page.py" --js-only "$html" || {
+  echo "页面脚本有错误，已停止发布；按上面的提示修好再发" >&2; exit 1; }
 
 # 发布目录只放 index.html，避免把 JSON 等源文件一起公开
 work=$(mktemp -d)
